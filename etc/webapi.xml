@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<!-- etc/webapi.xml -->
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
+    <route url="/V1/shopthru/orders/import" method="POST">
+        <service class="Shopthru\Connector\Api\ImportOrderManagementInterface" method="importOrders"/>
+        <resources>
+            <resource ref="Shopthru_Connector::import" />
+        </resources>
+    </route>
+</routes>

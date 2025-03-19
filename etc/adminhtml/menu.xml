@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Shopthru_Connector::shopthru"
+             title="Shopthru"
+             translate="title"
+             module="Shopthru_Connector"
+             sortOrder="50"
+             parent="Magento_Sales::sales"
+             resource="Shopthru_Connector::shopthru"/>
+
+        <add id="Shopthru_Connector::import_logs"
+             title="Import Logs"
+             translate="title"
+             module="Shopthru_Connector"
+             sortOrder="10"
+             parent="Shopthru_Connector::shopthru"
+             action="shopthru/import/index"
+             resource="Shopthru_Connector::import"/>
+    </menu>
+</config>

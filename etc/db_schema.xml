@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="shopthru_import_log" resource="default" engine="innodb" comment="Shopthru Import Log Table">
+        <column xsi:type="int" name="import_id" padding="10" unsigned="true" nullable="false" identity="true"
+                comment="Import ID"/>
+        <column xsi:type="int" name="parent_import_id" padding="10" unsigned="true" nullable="true"
+                comment="Parent Import ID"/>
+        <column xsi:type="varchar" name="shopthru_order_id" nullable="false" length="255" comment="Shopthru Order ID"/>
+        <column xsi:type="varchar" name="shopthru_publisher_ref" nullable="true" length="255" comment="Shopthru Publisher Reference"/>
+        <column xsi:type="varchar" name="shopthru_publisher_name" nullable="true" length="255" comment="Shopthru Publisher Name"/>
+        <column xsi:type="varchar" name="status" nullable="false" length="50" default="pending" comment="Status"/>
+        <column xsi:type="timestamp" name="imported_at" on_update="false" nullable="true"
+                comment="Imported At"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP"
+                comment="Created At"/>
+        <column xsi:type="text" name="log_data" nullable="true" comment="Log Data"/>
+        <column xsi:type="text" name="shopthru_data" nullable="true" comment="Original Shopthru Data"/>
+        <column xsi:type="text" name="additional_data" nullable="true" comment="Additional Data"/>
+        <column xsi:type="varchar" name="failed_reason" nullable="true" length="255" comment="Failed Reason"/>
+        <column xsi:type="varchar" name="magento_order_id" nullable="true" length="32" comment="Magento Order ID"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="import_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="SHOPTHRU_IMPORT_LOG_PARENT_IMPORT_ID_SHOPTHRU_IMPORT_LOG_IMPORT_ID"
+                    table="shopthru_import_log" column="parent_import_id" referenceTable="shopthru_import_log"
+                    referenceColumn="import_id" onDelete="SET NULL"/>
+        <index referenceId="SHOPTHRU_IMPORT_LOG_SHOPTHRU_ORDER_ID" indexType="btree">
+            <column name="shopthru_order_id"/>
+        </index>
+        <index referenceId="SHOPTHRU_IMPORT_LOG_STATUS" indexType="btree">
+            <column name="status"/>
+        </index>
+        <index referenceId="SHOPTHRU_IMPORT_LOG_MAGENTO_ORDER_ID" indexType="btree">
+            <column name="magento_order_id"/>
+        </index>
+    </table>
+</schema>
