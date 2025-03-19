@@ -17,7 +17,7 @@ enum ShippingMethod: string
      */
     public function getTitle(): string
     {
-        return match($this) {
+        return match ($this) {
             self::FLATRATE => 'Flat Rate',
             self::FREESHIPPING => 'Free Shipping',
             self::TABLERATE => 'Best Way',

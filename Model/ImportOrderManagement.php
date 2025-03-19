@@ -42,6 +42,31 @@ use Magento\Customer\Api\Data\AddressInterfaceFactory;
 
 class ImportOrderManagement implements ImportOrderManagementInterface
 {
+    /**
+     * @param ProductRepositoryInterface $productRepository
+     * @param CustomerRepositoryInterface $customerRepository
+     * @param CustomerInterfaceFactory $customerFactory
+     * @param CustomerFactory $customerModelFactory
+     * @param AddressInterfaceFactory $addressFactory
+     * @param AddressRepositoryInterface $addressRepository
+     * @param RegionInterfaceFactory $regionFactory
+     * @param CartManagementInterface $cartManagement
+     * @param CartRepositoryInterface $cartRepository
+     * @param QuoteFactory $quoteFactory
+     * @param CartItemInterfaceFactory $cartItemFactory
+     * @param OrderRepositoryInterface $orderRepository
+     * @param OrderManagementInterface $orderManagement
+     * @param StoreManagerInterface $storeManager
+     * @param Helper $helper
+     * @param Config $moduleConfig
+     * @param OrderSender $orderSender
+     * @param Random $random
+     * @param DateTime $dateTime
+     * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     * @param StockRegistryInterface $stockRegistry
+     * @param StockStateInterface $stockState
+     * @param ObjectManagerInterface $objectManager
+     */
     public function __construct(
         private readonly ProductRepositoryInterface $productRepository,
         private readonly CustomerRepositoryInterface $customerRepository,
@@ -103,24 +128,24 @@ class ImportOrderManagement implements ImportOrderManagementInterface
 
             try {
                 // Check if order with this Shopthru ID already exists
-//                $existingOrderId = $this->checkExistingOrder($shopthruOrderId);
-//                if ($existingOrderId) {
-//                    $this->helper->addEventLog(
-//                        $logEntry->getImportId(),
-//                        EventType::IMPORT_DUPLICATE,
-//                        'Order already exists in Magento',
-//                        ['magento_order_id' => $existingOrderId]
-//                    );
-//
-//                    $this->helper->updateImportLog(
-//                        $logEntry->getImportId(),
-//                        ImportStatus::FAILED,
-//                        null,
-//                        "Order with Shopthru ID $shopthruOrderId already exists in Magento (Order #$existingOrderId)"
-//                    );
-//                    $result[] = $logEntry;
-//                    continue;
-//                }
+                $existingOrderId = $this->checkExistingOrder($shopthruOrderId);
+                if ($existingOrderId) {
+                    $this->helper->addEventLog(
+                        $logEntry->getImportId(),
+                        EventType::IMPORT_DUPLICATE,
+                        'Order already exists in Magento',
+                        ['magento_order_id' => $existingOrderId]
+                    );
+
+                    $this->helper->updateImportLog(
+                        $logEntry->getImportId(),
+                        ImportStatus::FAILED,
+                        null,
+                        "Order with Shopthru ID {$shopthruOrderId} already exists in Magento (Order #{$existingOrderId})"
+                    );
+                    $result[] = $logEntry;
+                    continue;
+                }
 
                 // Process the order
                 $storeId = $orderData->getExtStoreId() ? (int)$orderData->getExtStoreId() : null;
@@ -205,7 +230,10 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 );
 
                 // Log the error and update the log entry
-                $this->helper->logError('Error importing order: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+                $this->helper->logError(
+                    'Error importing order: ' . $e->getMessage(),
+                    ['trace' => $e->getTraceAsString()]
+                );
                 $this->helper->updateImportLog(
                     $logEntry->getImportId(),
                     ImportStatus::FAILED,

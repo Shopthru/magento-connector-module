@@ -3,14 +3,15 @@
  * Template for viewing import log details
  *
  * @var \Shopthru\Connector\Block\Adminhtml\Order\Import\View $block
+ * @var \Magento\Framework\Escaper $escaper
  */
 $importLog = $block->getImportLog();
 ?>
     <div class="page-main-actions">
         <div class="page-actions">
             <div class="page-actions-buttons">
-                <button id="back" title="<?= $block->escapeHtmlAttr(__('Back')) ?>" type="button" class="action-scalable back" onclick="location.href = '<?= $block->escapeUrl($block->getUrl('*/*/')) ?>';">
-                    <span><?= $block->escapeHtml(__('Back')) ?></span>
+                <button id="back" title="<?= $escaper->escapeHtmlAttr(__('Back')) ?>" type="button" class="action-scalable back" onclick="location.href = '<?= $escaper->escapeUrl($block->getUrl('*/*/')) ?>';">
+                    <span><?= $escaper->escapeHtml(__('Back')) ?></span>
                 </button>
             </div>
         </div>
@@ -18,54 +19,54 @@ $importLog = $block->getImportLog();
 
     <section class="admin__page-section">
         <div class="admin__page-section-title">
-            <span class="title"><?= $block->escapeHtml(__('Import Information')) ?></span>
+            <span class="title"><?= $escaper->escapeHtml(__('Import Information')) ?></span>
         </div>
         <div class="admin__page-section-content">
             <div class="admin__page-section-item-content">
                 <table class="admin__table-secondary">
                     <tbody>
                     <tr>
-                        <th><?= $block->escapeHtml(__('Import ID')) ?>:</th>
-                        <td><?= $block->escapeHtml($importLog->getImportId()) ?></td>
+                        <th><?= $escaper->escapeHtml(__('Import ID')) ?>:</th>
+                        <td><?= $escaper->escapeHtml($importLog->getImportId()) ?></td>
                     </tr>
                     <tr>
-                        <th><?= $block->escapeHtml(__('Shopthru Order ID')) ?>:</th>
-                        <td><?= $block->escapeHtml($importLog->getShopthruOrderId()) ?></td>
+                        <th><?= $escaper->escapeHtml(__('Shopthru Order ID')) ?>:</th>
+                        <td><?= $escaper->escapeHtml($importLog->getShopthruOrderId()) ?></td>
                     </tr>
                     <tr>
-                        <th><?= $block->escapeHtml(__('Publisher Ref')) ?>:</th>
-                        <td><?= $block->escapeHtml($importLog->getShopthruPublisherRef() ?: '') ?></td>
+                        <th><?= $escaper->escapeHtml(__('Publisher Ref')) ?>:</th>
+                        <td><?= $escaper->escapeHtml($importLog->getShopthruPublisherRef() ?: '') ?></td>
                     </tr>
                     <tr>
-                        <th><?= $block->escapeHtml(__('Publisher Name')) ?>:</th>
-                        <td><?= $block->escapeHtml($importLog->getShopthruPublisherName() ?: '') ?></td>
+                        <th><?= $escaper->escapeHtml(__('Publisher Name')) ?>:</th>
+                        <td><?= $escaper->escapeHtml($importLog->getShopthruPublisherName() ?: '') ?></td>
                     </tr>
                     <tr>
-                        <th><?= $block->escapeHtml(__('Status')) ?>:</th>
-                        <td><?= $block->escapeHtml($importLog->getStatus()) ?></td>
+                        <th><?= $escaper->escapeHtml(__('Status')) ?>:</th>
+                        <td><?= $escaper->escapeHtml($importLog->getStatus()->value) ?></td>
                     </tr>
                     <?php if ($importLog->getMagentoOrderId()): ?>
                         <tr>
-                            <th><?= $block->escapeHtml(__('Magento Order #')) ?>:</th>
+                            <th><?= $escaper->escapeHtml(__('Magento Order #')) ?>:</th>
                             <td>
-                                <a href="<?= $block->escapeUrl($block->getUrl('sales/order/view', ['order_id' => $importLog->getMagentoOrderId()])) ?>">
-                                    <?= $block->escapeHtml($importLog->getMagentoOrderId()) ?>
+                                <a href="<?= $escaper->escapeUrl($block->getUrl('sales/order/view', ['order_id' => $importLog->getMagentoOrderId()])) ?>">
+                                    <?= $escaper->escapeHtml($importLog->getMagentoOrderId()) ?>
                                 </a>
                             </td>
                         </tr>
                     <?php endif; ?>
                     <tr>
-                        <th><?= $block->escapeHtml(__('Imported At')) ?>:</th>
-                        <td><?= $block->escapeHtml($block->formatDate($importLog->getImportedAt())) ?></td>
+                        <th><?= $escaper->escapeHtml(__('Imported At')) ?>:</th>
+                        <td><?= $escaper->escapeHtml($block->formatDate($importLog->getImportedAt())) ?></td>
                     </tr>
                     <tr>
-                        <th><?= $block->escapeHtml(__('Created At')) ?>:</th>
-                        <td><?= $block->escapeHtml($block->formatDate($importLog->getCreatedAt())) ?></td>
+                        <th><?= $escaper->escapeHtml(__('Created At')) ?>:</th>
+                        <td><?= $escaper->escapeHtml($block->formatDate($importLog->getCreatedAt())) ?></td>
                     </tr>
                     <?php if ($importLog->getFailedReason()): ?>
                         <tr>
-                            <th><?= $block->escapeHtml(__('Failed Reason')) ?>:</th>
-                            <td><?= $block->escapeHtml($importLog->getFailedReason()) ?></td>
+                            <th><?= $escaper->escapeHtml(__('Failed Reason')) ?>:</th>
+                            <td><?= $escaper->escapeHtml($importLog->getFailedReason()) ?></td>
                         </tr>
                     <?php endif; ?>
                     </tbody>
@@ -77,11 +78,24 @@ $importLog = $block->getImportLog();
 <?php if ($importLog->getLogData()): ?>
     <section class="admin__page-section">
         <div class="admin__page-section-title">
-            <span class="title"><?= $block->escapeHtml(__('Log Data')) ?></span>
+            <span class="title"><?= $escaper->escapeHtml(__('Log Data')) ?></span>
         </div>
         <div class="admin__page-section-content">
             <div class="admin__page-section-item-content">
-                <pre><?= $block->escapeHtml($block->formatJson($importLog->getLogData())) ?></pre>
+                <pre><?= $escaper->escapeHtml($block->formatJson($importLog->getLogData())) ?></pre>
+            </div>
+        </div>
+    </section>
+<?php endif; ?>
+
+<?php if ($importLog->getShopthruData()): ?>
+    <section class="admin__page-section">
+        <div class="admin__page-section-title">
+            <span class="title"><?= $escaper->escapeHtml(__('Shopthru Data')) ?></span>
+        </div>
+        <div class="admin__page-section-content">
+            <div class="admin__page-section-item-content">
+                <pre><?= $escaper->escapeHtml($block->formatJson($importLog->getShopthruData())) ?></pre>
             </div>
         </div>
     </section>
@@ -90,11 +104,11 @@ $importLog = $block->getImportLog();
 <?php if ($importLog->getAdditionalData()): ?>
     <section class="admin__page-section">
         <div class="admin__page-section-title">
-            <span class="title"><?= $block->escapeHtml(__('Additional Data')) ?></span>
+            <span class="title"><?= $escaper->escapeHtml(__('Additional Data')) ?></span>
         </div>
         <div class="admin__page-section-content">
             <div class="admin__page-section-item-content">
-                <pre><?= $block->escapeHtml($block->formatJson($importLog->getAdditionalData())) ?></pre>
+                <pre><?= $escaper->escapeHtml($block->formatJson($importLog->getAdditionalData())) ?></pre>
             </div>
         </div>
     </section>

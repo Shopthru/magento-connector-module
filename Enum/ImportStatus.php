@@ -17,7 +17,7 @@ enum ImportStatus: string
      */
     public function getLabel(): string
     {
-        return match($this) {
+        return match ($this) {
             self::PENDING => 'Pending',
             self::SUCCESS => 'Success',
             self::FAILED => 'Failed',
@@ -31,7 +31,7 @@ enum ImportStatus: string
      */
     public function getCssClass(): string
     {
-        return match($this) {
+        return match ($this) {
             self::PENDING => 'grid-severity-minor',
             self::SUCCESS => 'grid-severity-notice',
             self::FAILED => 'grid-severity-critical',
@@ -50,7 +50,7 @@ enum ImportStatus: string
             return null;
         }
 
-        return match($value) {
+        return match ($value) {
             'pending' => self::PENDING,
             'success' => self::SUCCESS,
             'failed' => self::FAILED,

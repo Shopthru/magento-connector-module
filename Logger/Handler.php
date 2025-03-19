@@ -16,7 +16,7 @@ class Handler extends StreamHandler
      */
     public function __construct(
         DriverInterface $filesystem,
-                        $filePath = null
+        $filePath = null
     ) {
         $logFile = $filePath ?? BP . '/var/log/shopthru_connector.log';
         parent::__construct($logFile, Logger::DEBUG);

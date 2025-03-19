@@ -75,7 +75,7 @@ enum EventType: string
      */
     public function getGroup(): string
     {
-        return match(true) {
+        return match (true) {
             str_starts_with($this->value, 'import:') => 'Import',
             str_starts_with($this->value, 'stock:') => 'Stock',
             str_starts_with($this->value, 'customer:') => 'Customer',

@@ -35,11 +35,11 @@ class Collection extends ImportLogCollection implements SearchResultInterface
         LoggerInterface $logger,
         FetchStrategyInterface $fetchStrategy,
         ManagerInterface $eventManager,
-                               $mainTable,
-                               $eventPrefix,
-                               $eventObject,
-                               $resourceModel,
-                               $model = \Magento\Framework\View\Element\UiComponent\DataProvider\Document::class,
+        $mainTable,
+        $eventPrefix,
+        $eventObject,
+        $resourceModel,
+        $model = \Magento\Framework\View\Element\UiComponent\DataProvider\Document::class,
         \Magento\Framework\DB\Adapter\AdapterInterface $connection = null,
         AbstractDb $resource = null
     ) {
@@ -58,6 +58,7 @@ class Collection extends ImportLogCollection implements SearchResultInterface
     }
 
     /**
+     *
      * @return AggregationInterface
      */
     public function getAggregations()
@@ -66,6 +67,7 @@ class Collection extends ImportLogCollection implements SearchResultInterface
     }
 
     /**
+     *
      * @param AggregationInterface $aggregations
      * @return $this
      */
