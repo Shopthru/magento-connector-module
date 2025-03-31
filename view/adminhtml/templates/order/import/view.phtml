@@ -43,7 +43,7 @@ $importLog = $block->getImportLog();
                     </tr>
                     <tr>
                         <th><?= $escaper->escapeHtml(__('Status')) ?>:</th>
-                        <td><?= $escaper->escapeHtml($importLog->getStatus()->value) ?></td>
+                        <td><?= $escaper->escapeHtml($importLog->getStatus()) ?></td>
                     </tr>
                     <?php if ($importLog->getMagentoOrderId()): ?>
                         <tr>

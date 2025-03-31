@@ -9,9 +9,8 @@ use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Shopthru\Connector\Api\Data\ImportLogInterface;
 use Shopthru\Connector\Api\ImportLogRepositoryInterface;
-use Shopthru\Connector\Enum\EventType;
-use Shopthru\Connector\Enum\ImportStatus;
 use Shopthru\Connector\Model\Config;
+use Shopthru\Connector\Model\EventType;
 use Shopthru\Connector\Model\ImportLogFactory;
 
 class Data extends AbstractHelper
@@ -38,7 +37,7 @@ class Data extends AbstractHelper
     }
 
     /**
-     * Get import log repository
+     * Get order repository
      *
      * @return ImportLogRepositoryInterface
      */
@@ -53,7 +52,7 @@ class Data extends AbstractHelper
      * @param string $shopthruOrderId
      * @param string|null $shopthruPublisherRef
      * @param string|null $shopthruPublisherName
-     * @param ImportStatus|string $status
+     * @param string $status
      * @param array|null $shopthruData
      * @param array|null $additionalData
      * @param string|null $failedReason
@@ -65,7 +64,7 @@ class Data extends AbstractHelper
         string $shopthruOrderId,
         ?string $shopthruPublisherRef = null,
         ?string $shopthruPublisherName = null,
-        ImportStatus|string $status = ImportStatus::PENDING,
+        string $status = ImportLogInterface::STATUS_PENDING,
         ?array $shopthruData = null,
         ?array $additionalData = null,
         ?string $failedReason = null,
@@ -76,13 +75,7 @@ class Data extends AbstractHelper
         $importLog->setShopthruOrderId($shopthruOrderId);
         $importLog->setShopthruPublisherRef($shopthruPublisherRef);
         $importLog->setShopthruPublisherName($shopthruPublisherName);
-
-        if ($status instanceof ImportStatus) {
-            $importLog->setStatus($status);
-        } else {
-            $importLog->setStatusValue($status);
-        }
-
+        $importLog->setStatus($status);
         $importLog->setShopthruData($shopthruData); // Store original Shopthru data
         $importLog->setLogData([]); // Initialize empty array for event logs
         $importLog->setAdditionalData($additionalData);
@@ -90,7 +83,7 @@ class Data extends AbstractHelper
         $importLog->setMagentoOrderId($magentoOrderId);
         $importLog->setParentImportId($parentImportId);
 
-        if ($status === ImportStatus::SUCCESS || $status === 'success') {
+        if ($status === ImportLogInterface::STATUS_SUCCESS) {
             $importLog->setImportedAt($this->dateTime->gmtDate());
         }
 
@@ -107,14 +100,14 @@ class Data extends AbstractHelper
      * Add an event to the import log
      *
      * @param int $importId
-     * @param EventType|string $eventName
+     * @param string $eventName
      * @param string|null $description
      * @param array|null $additionalData
      * @return \Shopthru\Connector\Api\Data\ImportLogInterface|null
      */
     public function addEventLog(
         int $importId,
-        EventType|string $eventName,
+        string $eventName,
         ?string $description = null,
         ?array $additionalData = null
     ): ?ImportLogInterface {
@@ -129,7 +122,7 @@ class Data extends AbstractHelper
 
             // Create new event entry
             $event = [
-                'event' => $eventName instanceof EventType ? $eventName->value : $eventName,
+                'event' => $eventName,
                 'datetime' => $this->dateTime->gmtDate('Y-m-d H:i:s')
             ];
 
@@ -160,7 +153,7 @@ class Data extends AbstractHelper
      * Update import log entry
      *
      * @param int $importId
-     * @param ImportStatus|string|null $status
+     * @param string|null $status
      * @param array|null $additionalData
      * @param string|null $failedReason
      * @param string|null $magentoOrderId
@@ -168,7 +161,7 @@ class Data extends AbstractHelper
      */
     public function updateImportLog(
         int $importId,
-        ImportStatus|string|null $status = null,
+        ?string $status = null,
         ?array $additionalData = null,
         ?string $failedReason = null,
         ?string $magentoOrderId = null
@@ -177,13 +170,9 @@ class Data extends AbstractHelper
             $importLog = $this->importLogRepository->getById($importId);
 
             if ($status !== null) {
-                if ($status instanceof ImportStatus) {
-                    $importLog->setStatus($status);
-                } else {
-                    $importLog->setStatusValue($status);
-                }
+                $importLog->setStatus($status);
 
-                if ($status === ImportStatus::SUCCESS || $status === 'success') {
+                if ($status === ImportLogInterface::STATUS_SUCCESS) {
                     $importLog->setImportedAt($this->dateTime->gmtDate());
                 }
             }
@@ -232,6 +221,7 @@ class Data extends AbstractHelper
     {
         // Shopthru sends prices in minor units (cents, pence, etc.)
         // Convert to standard currency format
+        return $price;
         return $price / 100;
     }
 

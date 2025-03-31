@@ -111,7 +111,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 $shopthruOrderId,
                 $publisherRef,
                 $publisherName,
-                ImportStatus::PENDING,
+                ImportLogInterface::STATUS_PENDING,
                 $orderData->getData(), // Store original Shopthru data
                 null,
                 null,
@@ -161,7 +161,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
 
                     $this->helper->updateImportLog(
                         $logEntry->getImportId(),
-                        ImportStatus::FAILED,
+                        ImportLogInterface::STATUS_FAILED,
                         null,
                         "Insufficient stock for one or more products in the order"
                     );
@@ -213,7 +213,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 // Update log status to success
                 $this->helper->updateImportLog(
                     $logEntry->getImportId(),
-                    ImportStatus::SUCCESS,
+                    ImportLogInterface::STATUS_SUCCESS,
                     ['order_info' => $this->getOrderSummary($order)],
                     null,
                     $order->getIncrementId()
@@ -236,7 +236,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 );
                 $this->helper->updateImportLog(
                     $logEntry->getImportId(),
-                    ImportStatus::FAILED,
+                    ImportLogInterface::STATUS_FAILED,
                     null,
                     $e->getMessage()
                 );
@@ -257,7 +257,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
     {
         $searchCriteria = $this->searchCriteriaBuilder
             ->addFilter('shopthru_order_id', $shopthruOrderId)
-            ->addFilter('status', ImportStatus::SUCCESS->value)
+            ->addFilter('status', ImportLogInterface::STATUS_SUCCESS)
             ->create();
 
         $logEntries = $this->helper->getImportLogRepository()->getList($searchCriteria);
@@ -434,19 +434,19 @@ class ImportOrderManagement implements ImportOrderManagementInterface
     }
 
     /**
-     * Prepare quote with all necessary data
+     * Prepare quote with all necessary data, applying shipping override *after* initial totals.
      *
      * @param OrderImportInterface $orderData
      * @param int|null $customerId
-     * @param mixed $store
+     * @param StoreInterface $store
      * @param ImportLogInterface $logEntry
      * @return CartInterface
-     * @throws LocalizedException
+     * @throws LocalizedException|NoSuchEntityException
      */
     private function prepareQuote(
         OrderImportInterface $orderData,
         ?int $customerId,
-                             $store,
+        StoreInterface $store,
         ImportLogInterface $logEntry
     ): CartInterface {
         $this->helper->addEventLog(
@@ -523,8 +523,8 @@ class ImportOrderManagement implements ImportOrderManagementInterface
 
         $this->helper->addEventLog(
             $logEntry->getImportId(),
-            EventType::QUOTE_FINALIZED,
-            'Quote finalized and saved',
+            EventType::QUOTE_FINALIZED, // Use Model Constant
+            'Quote finalized and saved with forced shipping amount',
             [
                 'quote_id' => $quote->getId(),
                 'subtotal' => $quote->getSubtotal(),
@@ -670,7 +670,8 @@ class ImportOrderManagement implements ImportOrderManagementInterface
     }
 
     /**
-     * Set shipping address on quote
+     * Set shipping address on quote and mark for free shipping initially.
+     * The actual amount will be set *after* collectTotals.
      *
      * @param Quote $quote
      * @param OrderImportInterface $orderData
@@ -687,9 +688,8 @@ class ImportOrderManagement implements ImportOrderManagementInterface
         $this->helper->addEventLog(
             $logEntry->getImportId(),
             EventType::QUOTE_ADDRESS_SHIPPING,
-            'Setting shipping address'
+            'Setting shipping address and marking for free shipping override'
         );
-
         $shippingAddress = $quote->getShippingAddress();
         $shippingAddress->setFirstname($this->getFirstName($customerData['name']));
         $shippingAddress->setLastname($this->getLastName($customerData['name']));
@@ -702,16 +702,13 @@ class ImportOrderManagement implements ImportOrderManagementInterface
         $shippingAddress->setTelephone($customerData['telephone'] ?? '');
 
         // Set shipping method
-        $shippingMethodValue = $orderData->getShippingMethod();
-        $shippingMethod = $shippingMethodValue
-            ? ShippingMethod::fromValue($shippingMethodValue)
-            : ShippingMethod::FLATRATE;
+        $shippingMethodCode = $orderData->getShippingMethod() ?? ShippingMethod::FLATRATE;
+        $shippingMethodDescription = ShippingMethod::getTitle($shippingMethodCode) ?? 'Shipping';
 
-        $shippingTitle = $orderData->getShippingTitle() ?? $shippingMethod->getTitle();
         $shippingAmount = $this->helper->formatPrice($orderData->getShippingTotal() ?? 0);
 
-        $shippingAddress->setShippingMethod($shippingMethod->value);
-        $shippingAddress->setShippingDescription($shippingTitle);
+        $shippingAddress->setShippingMethod($shippingMethodCode);
+        $shippingAddress->setShippingDescription($shippingMethodDescription);
         $shippingAddress->setShippingAmount($shippingAmount);
         $shippingAddress->setBaseShippingAmount($shippingAmount);
         $shippingAddress->setCollectShippingRates(true);
@@ -724,7 +721,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
             [
                 'city' => $shippingData['city'],
                 'country' => $shippingData['country'],
-                'shipping_method' => $shippingMethod->value,
+                'shipping_method' => $shippingMethodCode,
                 'shipping_amount' => $shippingAmount
             ]
         );
@@ -790,24 +787,28 @@ class ImportOrderManagement implements ImportOrderManagementInterface
 
         // Force shipping amount
         $shippingAmount = $this->helper->formatPrice($orderData->getShippingTotal() ?? 0);
-        $shippingMethodValue = $orderData->getShippingMethod();
-        $shippingMethod = $shippingMethodValue
-            ? ShippingMethod::fromValue($shippingMethodValue)
-            : ShippingMethod::FLATRATE;
+        $shippingMethodCode = $orderData->getShippingMethod();
+        $shippingMethodTitle = $orderData->getShippingTitle();
 
         $this->helper->addEventLog(
             $logEntry->getImportId(),
             EventType::QUOTE_SHIPPING_METHOD,
             'Setting shipping method',
             [
-                'method' => $shippingMethod->value,
+                'method' => $shippingMethodCode,
+                'title' => $shippingMethodTitle,
                 'amount' => $shippingAmount
             ]
         );
 
+
         $shippingAddress->setShippingAmount($shippingAmount);
         $shippingAddress->setBaseShippingAmount($shippingAmount);
-        $shippingAddress->setShippingMethod($shippingMethod->value);
+        $shippingAddress->setShippingMethod($shippingMethodCode);
+        $quote->setShippingAmount($shippingAmount);
+        $quote->setBaseShippingAmount($shippingAmount);
+
+        $shippingAddress->setCollectShippingRates(false);
 
         $this->helper->addEventLog(
             $logEntry->getImportId(),

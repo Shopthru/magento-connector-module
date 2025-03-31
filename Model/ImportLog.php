@@ -8,7 +8,6 @@ use Magento\Framework\Model\ResourceModel\AbstractResource;
 use Magento\Framework\Registry;
 use Magento\Framework\Serialize\Serializer\Json;
 use Shopthru\Connector\Api\Data\ImportLogInterface;
-use Shopthru\Connector\Enum\ImportStatus;
 
 class ImportLog extends AbstractModel implements ImportLogInterface
 {
@@ -126,7 +125,7 @@ class ImportLog extends AbstractModel implements ImportLogInterface
     /**
      * @inheritDoc
      */
-    public function getStatusValue(): string
+    public function getStatus(): string
     {
         return (string)$this->getData(self::STATUS);
     }
@@ -134,26 +133,9 @@ class ImportLog extends AbstractModel implements ImportLogInterface
     /**
      * @inheritDoc
      */
-    public function getStatus(): ImportStatus
-    {
-        $status = ImportStatus::fromValue($this->getStatusValue());
-        return $status ?? ImportStatus::PENDING;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function setStatusValue(string $status): self
+    public function setStatus(string $status): self
     {
         return $this->setData(self::STATUS, $status);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function setStatus(ImportStatus $status): self
-    {
-        return $this->setData(self::STATUS, $status->value);
     }
 
     /**

@@ -1,8 +1,6 @@
 <?php
 namespace Shopthru\Connector\Api\Data;
 
-use Shopthru\Connector\Enum\ImportStatus;
-
 interface ImportLogInterface
 {
     /**
@@ -21,6 +19,13 @@ interface ImportLogInterface
     const ADDITIONAL_DATA = 'additional_data';
     const FAILED_REASON = 'failed_reason';
     const MAGENTO_ORDER_ID = 'magento_order_id';
+
+    /**
+     * Status Constants
+     */
+    const STATUS_PENDING = 'pending';
+    const STATUS_SUCCESS = 'success';
+    const STATUS_FAILED = 'failed';
 
     /**
      * Get Import ID
@@ -98,34 +103,19 @@ interface ImportLogInterface
     public function setShopthruPublisherName(?string $shopthruPublisherName): self;
 
     /**
-     * Get Status as string
+     * Get Status
      *
      * @return string
      */
-    public function getStatusValue(): string;
+    public function getStatus(): string;
 
     /**
-     * Get Status as enum
-     *
-     * @return ImportStatus
-     */
-    public function getStatus(): ImportStatus;
-
-    /**
-     * Set Status from string
+     * Set Status
      *
      * @param string $status
      * @return $this
      */
-    public function setStatusValue(string $status): self;
-
-    /**
-     * Set Status from enum
-     *
-     * @param ImportStatus $status
-     * @return $this
-     */
-    public function setStatus(ImportStatus $status): self;
+    public function setStatus(string $status): self;
 
     /**
      * Get Imported At

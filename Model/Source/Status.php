@@ -6,7 +6,6 @@ namespace Shopthru\Connector\Model\Source;
 
 use Magento\Framework\Data\OptionSourceInterface;
 use Shopthru\Connector\Api\Data\ImportLogInterface;
-use Shopthru\Connector\Enum\ImportStatus;
 
 class Status implements OptionSourceInterface
 {
@@ -19,15 +18,15 @@ class Status implements OptionSourceInterface
     {
         return [
             [
-                'value' => ImportStatus::PENDING,
+                'value' => ImportLogInterface::STATUS_PENDING,
                 'label' => __('Pending')
             ],
             [
-                'value' => ImportStatus::SUCCESS,
+                'value' => ImportLogInterface::STATUS_SUCCESS,
                 'label' => __('Success')
             ],
             [
-                'value' => ImportStatus::FAILED,
+                'value' => ImportLogInterface::STATUS_FAILED,
                 'label' => __('Failed')
             ]
         ];
