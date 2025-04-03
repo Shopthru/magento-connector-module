@@ -6,6 +6,12 @@ namespace Shopthru\Connector\Model;
 
 class EventType
 {
+    const ORDER_CREATING_DIRECT = 'order_creating_direct';
+    const ORDER_CREATED_DIRECT = 'order_created_direct';
+    const ORDER_ITEM_ADDED = 'order_item_added';
+    const ORDER_ITEM_ERROR = 'order_item_error';
+    const ORDER_SUBTOTAL_ADJUSTED = 'order_subtotal_adjusted';
+
     // Import process events
     const IMPORT_STARTED = 'import:started';
     const IMPORT_DUPLICATE = 'import:duplicate';
@@ -36,6 +42,8 @@ class EventType
     const QUOTE_GUEST = 'quote:guest';
     const QUOTE_ITEMS_ADDING = 'quote:items:adding';
     const QUOTE_ITEM_ADDING = 'quote:item:adding';
+
+    const QUOTE_ITEM_DISCOUNT = 'quote:item:discount';
     const QUOTE_ITEM_CUSTOM_PRICE = 'quote:item:customPrice';
     const QUOTE_ITEM_ADDED = 'quote:item:added';
     const QUOTE_ITEM_ERROR = 'quote:item:error';
@@ -50,6 +58,12 @@ class EventType
     const QUOTE_SHIPPING_METHOD = 'quote:shipping:method';
     const QUOTE_SHIPPING_METHOD_SET = 'quote:shipping:method:set';
     const QUOTE_FINALIZED = 'quote:finalized';
+
+    const QUOTE_ENFORCING_TOTALS = 'quote:enforcing:totals';
+    const QUOTE_TOTAL_DIFFERENCE = 'quote:total:difference';
+    const QUOTE_TOTALS_ENFORCED = 'quote:total:enforced';
+    const QUOTE_DISCOUNT_ENFORCED = 'quote:discount:enforced';
+    const ORDER_SHIPPING_CORRECTED = 'order:shipping:corrected';
 
     // Order-related events
     const ORDER_CREATING = 'order:creating';
@@ -67,6 +81,7 @@ class EventType
     const EMAIL_SENDING = 'email:sending';
     const EMAIL_SENT = 'email:sent';
     const EMAIL_ERROR = 'email:error';
+    const EMAIL_SKIPPED = 'email:skipped';
 
     /**
      * Get group for event type

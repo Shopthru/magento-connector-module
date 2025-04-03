@@ -422,4 +422,36 @@ class OrderImport extends DataObject implements OrderImportInterface
     {
         return $this->setData(self::CUSTOMER, $customer);
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function getTaxTotal()
+    {
+        return $this->getData(self::TAX_TOTAL);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setTaxTotal($taxTotal)
+    {
+        return $this->setData(self::TAX_TOTAL, $taxTotal);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getTotalExTax()
+    {
+        return $this->getData(self::TOTAL_EX_TAX);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setTotalExTax($totalExTax)
+    {
+        return $this->setData(self::TOTAL_EX_TAX, $totalExTax);
+    }
 }

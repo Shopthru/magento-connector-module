@@ -33,6 +33,8 @@ interface OrderImportInterface
     const SHIPPING_TITLE = 'shipping_title';
     const ITEMS = 'items';
     const CUSTOMER = 'customer';
+    const TAX_TOTAL = 'tax_total';
+    const TOTAL_EX_TAX = 'total_excl_tax';
 
     /**
      * Get Order ID
@@ -423,4 +425,34 @@ interface OrderImportInterface
      * @return $this
      */
     public function setCustomer($customer);
+
+    /**
+     * Get Tax Total
+     *
+     * @return float|null
+     */
+    public function getTaxTotal();
+
+    /**
+     * Set Tax Total
+     *
+     * @param float $taxTotal
+     * @return $this
+     */
+    public function setTaxTotal($taxTotal);
+
+    /**
+     * Get Tax Total
+     *
+     * @return float|null
+     */
+    public function getTotalExTax();
+
+    /**
+     * Set Tax Total
+     *
+     * @param float $totalExTax
+     * @return $this
+     */
+    public function setTotalExTax($totalExTax);
 }

@@ -5,92 +5,38 @@
 namespace Shopthru\Connector\Model;
 
 use Magento\Catalog\Api\ProductRepositoryInterface;
+use Magento\CatalogInventory\Api\StockRegistryInterface;
+use Magento\CatalogInventory\Api\StockStateInterface;
+use Magento\Customer\Api\AddressRepositoryInterface;
 use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Api\Data\AddressInterfaceFactory;
 use Magento\Customer\Api\Data\CustomerInterfaceFactory;
 use Magento\Customer\Api\Data\RegionInterfaceFactory;
 use Magento\Customer\Model\CustomerFactory;
 use Magento\Framework\Api\SearchCriteriaBuilder;
-use Magento\Framework\DataObject;
-use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Framework\Math\Random;
-use Magento\Framework\ObjectManagerInterface;
-use Magento\Framework\Stdlib\DateTime\DateTime;
-use Magento\Quote\Api\CartManagementInterface;
-use Magento\Quote\Api\CartRepositoryInterface;
-use Magento\Quote\Api\Data\CartInterface;
-use Magento\Quote\Api\Data\CartItemInterfaceFactory;
-use Magento\Quote\Model\Quote;
-use Magento\Quote\Model\QuoteFactory;
-use Magento\Sales\Api\OrderManagementInterface;
-use Magento\Sales\Api\OrderRepositoryInterface;
-use Magento\Sales\Model\Order;
+use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Model\Order\Email\Sender\OrderSender;
-use Magento\Store\Model\StoreManagerInterface;
-use Magento\CatalogInventory\Api\StockRegistryInterface;
-use Magento\CatalogInventory\Api\StockStateInterface;
 use Shopthru\Connector\Api\Data\ImportLogInterface;
 use Shopthru\Connector\Api\Data\OrderImportInterface;
 use Shopthru\Connector\Api\ImportOrderManagementInterface;
-use Shopthru\Connector\Enum\EventType;
-use Shopthru\Connector\Enum\ImportStatus;
-use Shopthru\Connector\Enum\ShippingMethod;
-use Shopthru\Connector\Helper\Data as Helper;
+use Shopthru\Connector\Helper\Logging;
 use Shopthru\Connector\Model\Config as ModuleConfig;
-use Magento\Customer\Api\AddressRepositoryInterface;
-use Magento\Customer\Api\Data\AddressInterfaceFactory;
+use Shopthru\Connector\Model\ImportProcessors\DirectOrderCreator;
+use Shopthru\Connector\Model\ImportProcessors\PlaceQuoteOrder;
 
 class ImportOrderManagement implements ImportOrderManagementInterface
 {
-    /**
-     * @param ProductRepositoryInterface $productRepository
-     * @param CustomerRepositoryInterface $customerRepository
-     * @param CustomerInterfaceFactory $customerFactory
-     * @param CustomerFactory $customerModelFactory
-     * @param AddressInterfaceFactory $addressFactory
-     * @param AddressRepositoryInterface $addressRepository
-     * @param RegionInterfaceFactory $regionFactory
-     * @param CartManagementInterface $cartManagement
-     * @param CartRepositoryInterface $cartRepository
-     * @param QuoteFactory $quoteFactory
-     * @param CartItemInterfaceFactory $cartItemFactory
-     * @param OrderRepositoryInterface $orderRepository
-     * @param OrderManagementInterface $orderManagement
-     * @param StoreManagerInterface $storeManager
-     * @param Helper $helper
-     * @param Config $moduleConfig
-     * @param OrderSender $orderSender
-     * @param Random $random
-     * @param DateTime $dateTime
-     * @param SearchCriteriaBuilder $searchCriteriaBuilder
-     * @param StockRegistryInterface $stockRegistry
-     * @param StockStateInterface $stockState
-     * @param ObjectManagerInterface $objectManager
-     */
     public function __construct(
         private readonly ProductRepositoryInterface $productRepository,
         private readonly CustomerRepositoryInterface $customerRepository,
-        private readonly CustomerInterfaceFactory $customerFactory,
-        private readonly CustomerFactory $customerModelFactory,
-        private readonly AddressInterfaceFactory $addressFactory,
-        private readonly AddressRepositoryInterface $addressRepository,
-        private readonly RegionInterfaceFactory $regionFactory,
-        private readonly CartManagementInterface $cartManagement,
-        private readonly CartRepositoryInterface $cartRepository,
-        private readonly QuoteFactory $quoteFactory,
-        private readonly CartItemInterfaceFactory $cartItemFactory,
-        private readonly OrderRepositoryInterface $orderRepository,
-        private readonly OrderManagementInterface $orderManagement,
-        private readonly StoreManagerInterface $storeManager,
-        private readonly Helper $helper,
+        private readonly Logging $loggingHelper,
         private readonly ModuleConfig $moduleConfig,
         private readonly OrderSender $orderSender,
-        private readonly Random $random,
-        private readonly DateTime $dateTime,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
         private readonly StockRegistryInterface $stockRegistry,
-        private readonly StockStateInterface $stockState,
-        private readonly ObjectManagerInterface $objectManager
+        private readonly PlaceQuoteOrder $placeQuoteOrder,
+        private readonly DirectOrderCreator $directOrderCreator,
     ) {}
 
     /**
@@ -107,20 +53,16 @@ class ImportOrderManagement implements ImportOrderManagementInterface
             $publisherName = isset($publisher['name']) ? $publisher['name'] : null;
 
             // Create initial log entry
-            $logEntry = $this->helper->createImportLog(
+            $logEntry = $this->loggingHelper->createImportLog(
                 $shopthruOrderId,
                 $publisherRef,
                 $publisherName,
                 ImportLogInterface::STATUS_PENDING,
                 $orderData->getData(), // Store original Shopthru data
-                null,
-                null,
-                null,
-                null
             );
 
             // Log initial event
-            $this->helper->addEventLog(
+            $this->loggingHelper->addEventLog(
                 $logEntry->getImportId(),
                 EventType::IMPORT_STARTED,
                 'Started processing Shopthru order: ' . $shopthruOrderId
@@ -139,7 +81,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
 
                     $this->helper->updateImportLog(
                         $logEntry->getImportId(),
-                        ImportStatus::FAILED,
+                        ImportLogInterface::STATUS_FAILED,
                         null,
                         "Order with Shopthru ID {$shopthruOrderId} already exists in Magento (Order #{$existingOrderId})"
                     );
@@ -149,17 +91,17 @@ class ImportOrderManagement implements ImportOrderManagementInterface
 
                 // Process the order
                 $storeId = $orderData->getExtStoreId() ? (int)$orderData->getExtStoreId() : null;
-                $store = $this->helper->getStore($storeId);
+                $store = $this->loggingHelper->getStore($storeId);
 
                 // Check stock levels if needed
                 if (!$this->validateStock($orderData, $logEntry)) {
-                    $this->helper->addEventLog(
+                    $this->loggingHelper->addEventLog(
                         $logEntry->getImportId(),
                         EventType::STOCK_INSUFFICIENT,
                         'Insufficient stock for one or more products'
                     );
 
-                    $this->helper->updateImportLog(
+                    $this->loggingHelper->updateImportLog(
                         $logEntry->getImportId(),
                         ImportLogInterface::STATUS_FAILED,
                         null,
@@ -169,23 +111,12 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                     continue;
                 }
 
-                // Create or get customer
-                $customer = $this->prepareCustomer($orderData, $store, $logEntry);
-
-                // Create quote
-                $quote = $this->prepareQuote($orderData, $customer, $store, $logEntry);
-
-                // Create order from quote
-                $order = $this->createOrder($quote, $orderData, $logEntry);
-
-                // Decrement stock if enabled
-                if ($this->moduleConfig->isDecrementStockEnabled()) {
-                    $this->decrementStock($order, $logEntry);
-                }
+                $order = $this->directOrderCreator->create($orderData, $logEntry);
+//                $order = $this->placeQuoteOrder->create($orderData, $logEntry);
 
                 // Send email if enabled
                 if ($this->moduleConfig->isTriggerEmailEnabled()) {
-                    $this->helper->addEventLog(
+                    $this->loggingHelper->addEventLog(
                         $logEntry->getImportId(),
                         EventType::EMAIL_SENDING,
                         'Sending order confirmation email',
@@ -194,16 +125,22 @@ class ImportOrderManagement implements ImportOrderManagementInterface
 
                     $this->orderSender->send($order);
 
-                    $this->helper->addEventLog(
+                    $this->loggingHelper->addEventLog(
                         $logEntry->getImportId(),
                         EventType::EMAIL_SENT,
                         'Order confirmation email sent',
                         ['order_id' => $order->getIncrementId()]
                     );
+                } else {
+                    $this->loggingHelper->addEventLog(
+                        $logEntry->getImportId(),
+                        EventType::EMAIL_SKIPPED,
+                        'Order confirmation email skipped due to configuration'
+                    );
                 }
 
                 // Log completion event
-                $this->helper->addEventLog(
+                $this->loggingHelper->addEventLog(
                     $logEntry->getImportId(),
                     EventType::IMPORT_COMPLETED,
                     'Order import completed successfully',
@@ -211,18 +148,18 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 );
 
                 // Update log status to success
-                $this->helper->updateImportLog(
+                $this->loggingHelper->updateImportLog(
                     $logEntry->getImportId(),
                     ImportLogInterface::STATUS_SUCCESS,
                     ['order_info' => $this->getOrderSummary($order)],
                     null,
-                    $order->getIncrementId()
+                    $order->getId()
                 );
 
                 $result[] = $logEntry;
             } catch (\Exception $e) {
                 // Log the error
-                $this->helper->addEventLog(
+                $this->loggingHelper->addEventLog(
                     $logEntry->getImportId(),
                     EventType::IMPORT_ERROR,
                     'Error importing order: ' . $e->getMessage(),
@@ -230,11 +167,11 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 );
 
                 // Log the error and update the log entry
-                $this->helper->logError(
+                $this->loggingHelper->logError(
                     'Error importing order: ' . $e->getMessage(),
                     ['trace' => $e->getTraceAsString()]
                 );
-                $this->helper->updateImportLog(
+                $this->loggingHelper->updateImportLog(
                     $logEntry->getImportId(),
                     ImportLogInterface::STATUS_FAILED,
                     null,
@@ -260,7 +197,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
             ->addFilter('status', ImportLogInterface::STATUS_SUCCESS)
             ->create();
 
-        $logEntries = $this->helper->getImportLogRepository()->getList($searchCriteria);
+        $logEntries = $this->loggingHelper->getImportLogRepository()->getList($searchCriteria);
 
         if (!empty($logEntries)) {
             foreach ($logEntries as $logEntry) {
@@ -284,7 +221,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
     {
         // If allow zero stock is enabled, skip validation
         if ($this->moduleConfig->isAllowZeroStockEnabled()) {
-            $this->helper->addEventLog(
+            $this->loggingHelper->addEventLog(
                 $logEntry->getImportId(),
                 EventType::STOCK_VALIDATION_SKIPPED,
                 'Stock validation skipped due to configuration'
@@ -292,7 +229,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
             return true;
         }
 
-        $this->helper->addEventLog(
+        $this->loggingHelper->addEventLog(
             $logEntry->getImportId(),
             EventType::STOCK_VALIDATION_STARTED,
             'Started validating stock for order items'
@@ -320,7 +257,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                     ];
                 }
             } catch (NoSuchEntityException $e) {
-                $this->helper->addEventLog(
+                $this->loggingHelper->addEventLog(
                     $logEntry->getImportId(),
                     EventType::STOCK_VALIDATION_ERROR,
                     'Product not found: ' . $sku,
@@ -331,10 +268,10 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                     'sku' => $sku,
                     'error' => 'Product not found'
                 ];
-                $this->helper->logError('Product not found: ' . $sku);
+                $this->loggingHelper->logError('Product not found: ' . $sku);
                 continue;
             } catch (\Exception $e) {
-                $this->helper->addEventLog(
+                $this->loggingHelper->addEventLog(
                     $logEntry->getImportId(),
                     EventType::STOCK_VALIDATION_ERROR,
                     'Error checking stock: ' . $e->getMessage(),
@@ -345,19 +282,19 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                     'sku' => $sku,
                     'error' => $e->getMessage()
                 ];
-                $this->helper->logError('Error checking stock: ' . $e->getMessage());
+                $this->loggingHelper->logError('Error checking stock: ' . $e->getMessage());
                 continue;
             }
         }
 
         if ($allItemsInStock) {
-            $this->helper->addEventLog(
+            $this->loggingHelper->addEventLog(
                 $logEntry->getImportId(),
                 EventType::STOCK_VALIDATION_SUCCESS,
                 'All items are in stock'
             );
         } else {
-            $this->helper->addEventLog(
+            $this->loggingHelper->addEventLog(
                 $logEntry->getImportId(),
                 EventType::STOCK_VALIDATION_FAILED,
                 'Some items are out of stock',
@@ -385,7 +322,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
         $customerEmail = $customerData['email'];
         $customerId = null;
 
-        $this->helper->addEventLog(
+        $this->loggingHelper->addEventLog(
             $logEntry->getImportId(),
             EventType::CUSTOMER_PREPARING,
             'Preparing customer data',
@@ -398,7 +335,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 $customer = $this->customerRepository->get($customerEmail);
                 $customerId = $customer->getId();
 
-                $this->helper->addEventLog(
+                $this->loggingHelper->addEventLog(
                     $logEntry->getImportId(),
                     EventType::CUSTOMER_FOUND,
                     'Found existing customer',
@@ -406,24 +343,24 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 );
             } catch (NoSuchEntityException $e) {
                 // Customer doesn't exist, we'll continue with a guest order
-                $this->helper->addEventLog(
+                $this->loggingHelper->addEventLog(
                     $logEntry->getImportId(),
                     EventType::CUSTOMER_GUEST,
                     'No existing customer found, proceeding with guest checkout'
                 );
                 $customerId = null;
             } catch (\Exception $e) {
-                $this->helper->addEventLog(
+                $this->loggingHelper->addEventLog(
                     $logEntry->getImportId(),
                     EventType::CUSTOMER_ERROR,
                     'Error finding customer: ' . $e->getMessage(),
                     ['email' => $customerEmail]
                 );
-                $this->helper->logError('Error finding customer: ' . $e->getMessage());
+                $this->loggingHelper->logError('Error finding customer: ' . $e->getMessage());
                 $customerId = null;
             }
         } else {
-            $this->helper->addEventLog(
+            $this->loggingHelper->addEventLog(
                 $logEntry->getImportId(),
                 EventType::CUSTOMER_GUEST,
                 'Using guest checkout (customer linking disabled)'
@@ -434,614 +371,12 @@ class ImportOrderManagement implements ImportOrderManagementInterface
     }
 
     /**
-     * Prepare quote with all necessary data, applying shipping override *after* initial totals.
-     *
-     * @param OrderImportInterface $orderData
-     * @param int|null $customerId
-     * @param StoreInterface $store
-     * @param ImportLogInterface $logEntry
-     * @return CartInterface
-     * @throws LocalizedException|NoSuchEntityException
-     */
-    private function prepareQuote(
-        OrderImportInterface $orderData,
-        ?int $customerId,
-        StoreInterface $store,
-        ImportLogInterface $logEntry
-    ): CartInterface {
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::QUOTE_CREATING,
-            'Creating new quote'
-        );
-
-        $quote = $this->quoteFactory->create();
-        $quote->setStore($store);
-        $quote->setIsMultiShipping(false);
-        $quote->setInventoryProcessed(false);
-        $quote->setIsSuperMode(true); // Skip validation
-
-        // Set currency and store
-        $quote->setCurrency();
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::QUOTE_CREATED,
-            'Quote created',
-            ['quote_id' => $quote->getId()]
-        );
-
-        // Set customer data
-        if ($customerId) {
-            $this->helper->addEventLog(
-                $logEntry->getImportId(),
-                EventType::QUOTE_CUSTOMER,
-                'Assigning registered customer to quote',
-                ['customer_id' => $customerId]
-            );
-
-            $quote->assignCustomerWithAddressChange(
-                $this->customerModelFactory->create()->load($customerId)
-            );
-        } else {
-            // Set as guest checkout
-            $customerData = $orderData->getCustomer();
-
-            $this->helper->addEventLog(
-                $logEntry->getImportId(),
-                EventType::QUOTE_GUEST,
-                'Setting up guest checkout',
-                ['email' => $customerData['email']]
-            );
-
-            $quote->setCustomerIsGuest(1);
-            $quote->setCustomerEmail($customerData['email']);
-            $quote->setCustomerFirstname($this->getFirstName($customerData['name']));
-            $quote->setCustomerLastname($this->getLastName($customerData['name']));
-        }
-
-        // TODO: Set coupon code if available
-        // TODO: save quote using repository
-        $quote->save();
-
-        // Add products to quote
-        $this->addProductsToQuote($quote, $orderData, $logEntry);
-
-        // Set addresses
-        $this->setBillingAddress($quote, $orderData, $logEntry);
-        $this->setShippingAddress($quote, $orderData, $logEntry);
-
-        // Set payment method
-        $this->setPaymentMethod($quote, $orderData, $logEntry);
-
-        // Set shipping method
-        $this->setShippingMethod($quote, $orderData, $logEntry);
-
-        // Collect totals and save quote
-        $quote->collectTotals();
-        $this->cartRepository->save($quote);
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::QUOTE_FINALIZED, // Use Model Constant
-            'Quote finalized and saved with forced shipping amount',
-            [
-                'quote_id' => $quote->getId(),
-                'subtotal' => $quote->getSubtotal(),
-                'grand_total' => $quote->getGrandTotal()
-            ]
-        );
-
-        return $quote;
-    }
-
-    /**
-     * Add products to quote
-     *
-     * @param Quote $quote
-     * @param OrderImportInterface $orderData
-     * @param ImportLogInterface $logEntry
-     * @throws LocalizedException
-     */
-    private function addProductsToQuote(
-        Quote $quote,
-        OrderImportInterface $orderData,
-        ImportLogInterface $logEntry
-    ): void {
-        $items = $orderData->getItems();
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::QUOTE_ITEMS_ADDING,
-            'Adding items to quote',
-            ['item_count' => count($items)]
-        );
-
-        foreach ($items as $item) {
-            $sku = $item['product_sku'];
-            $qty = $item['quantity'];
-            $price = $this->helper->formatPrice((float)$item['price']);
-
-            try {
-                $product = $this->productRepository->get($sku);
-
-                $this->helper->addEventLog(
-                    $logEntry->getImportId(),
-                    EventType::QUOTE_ITEM_ADDING,
-                    'Adding item to quote: ' . $product->getName(),
-                    [
-                        'sku' => $sku,
-                        'qty' => $qty,
-                        'price' => $price
-                    ]
-                );
-
-                $quoteItem = $quote->addProduct($product, new DataObject(['qty' => $qty]));
-
-                // Set custom price if needed
-                if (abs($price - $product->getFinalPrice()) > 0.001) {
-                    $quoteItem->setCustomPrice($price);
-                    $quoteItem->setOriginalCustomPrice($price);
-
-                    $this->helper->addEventLog(
-                        $logEntry->getImportId(),
-                        EventType::QUOTE_ITEM_CUSTOM_PRICE,
-                        'Applied custom price to item',
-                        [
-                            'sku' => $sku,
-                            'custom_price' => $price,
-                            'original_price' => $product->getFinalPrice()
-                        ]
-                    );
-                }
-
-                $quoteItem->save();
-
-                $this->helper->addEventLog(
-                    $logEntry->getImportId(),
-                    EventType::QUOTE_ITEM_ADDED,
-                    'Item added to quote',
-                    [
-                        'sku' => $sku,
-                        'quote_item_id' => $quoteItem->getId()
-                    ]
-                );
-            } catch (NoSuchEntityException $e) {
-                $this->helper->addEventLog(
-                    $logEntry->getImportId(),
-                    EventType::QUOTE_ITEM_ERROR,
-                    'Product not found: ' . $sku,
-                    ['error' => $e->getMessage()]
-                );
-                throw new LocalizedException(__('Product with SKU "%1" not found', $sku));
-            }
-        }
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::QUOTE_ITEMS_ADDED,
-            'All items added to quote',
-            ['items_count' => count($quote->getAllItems())]
-        );
-    }
-
-    /**
-     * Set billing address on quote
-     *
-     * @param Quote $quote
-     * @param OrderImportInterface $orderData
-     * @param ImportLogInterface $logEntry
-     */
-    private function setBillingAddress(
-        Quote $quote,
-        OrderImportInterface $orderData,
-        ImportLogInterface $logEntry
-    ): void {
-        $customerData = $orderData->getCustomer();
-        $billingData = $customerData['billing_address'];
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::QUOTE_ADDRESS_BILLING,
-            'Setting billing address'
-        );
-
-        $billingAddress = $quote->getBillingAddress();
-        $billingAddress->setFirstname($this->getFirstName($customerData['name']));
-        $billingAddress->setLastname($this->getLastName($customerData['name']));
-        $billingAddress->setStreet($billingData['street_address']);
-        $billingAddress->setCity($billingData['city']);
-        $billingAddress->setPostcode($billingData['postcode']);
-        $billingAddress->setCountryId($billingData['country']);
-        $billingAddress->setRegion($billingData['region'] ?? '');
-        $billingAddress->setEmail($customerData['email']);
-        $billingAddress->setTelephone($customerData['telephone'] ?? '');
-        $billingAddress->setSameAsBilling(0);
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::QUOTE_ADDRESS_BILLING_SET,
-            'Billing address set',
-            [
-                'city' => $billingData['city'],
-                'country' => $billingData['country']
-            ]
-        );
-    }
-
-    /**
-     * Set shipping address on quote and mark for free shipping initially.
-     * The actual amount will be set *after* collectTotals.
-     *
-     * @param Quote $quote
-     * @param OrderImportInterface $orderData
-     * @param ImportLogInterface $logEntry
-     */
-    private function setShippingAddress(
-        Quote $quote,
-        OrderImportInterface $orderData,
-        ImportLogInterface $logEntry
-    ): void {
-        $customerData = $orderData->getCustomer();
-        $shippingData = $customerData['shipping_address'];
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::QUOTE_ADDRESS_SHIPPING,
-            'Setting shipping address and marking for free shipping override'
-        );
-        $shippingAddress = $quote->getShippingAddress();
-        $shippingAddress->setFirstname($this->getFirstName($customerData['name']));
-        $shippingAddress->setLastname($this->getLastName($customerData['name']));
-        $shippingAddress->setStreet($shippingData['street_address']);
-        $shippingAddress->setCity($shippingData['city']);
-        $shippingAddress->setPostcode($shippingData['postcode']);
-        $shippingAddress->setCountryId($shippingData['country']);
-        $shippingAddress->setRegion($shippingData['region'] ?? '');
-        $shippingAddress->setEmail($customerData['email']);
-        $shippingAddress->setTelephone($customerData['telephone'] ?? '');
-
-        // Set shipping method
-        $shippingMethodCode = $orderData->getShippingMethod() ?? ShippingMethod::FLATRATE;
-        $shippingMethodDescription = ShippingMethod::getTitle($shippingMethodCode) ?? 'Shipping';
-
-        $shippingAmount = $this->helper->formatPrice($orderData->getShippingTotal() ?? 0);
-
-        $shippingAddress->setShippingMethod($shippingMethodCode);
-        $shippingAddress->setShippingDescription($shippingMethodDescription);
-        $shippingAddress->setShippingAmount($shippingAmount);
-        $shippingAddress->setBaseShippingAmount($shippingAmount);
-        $shippingAddress->setCollectShippingRates(true);
-        $shippingAddress->collectShippingRates();
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::QUOTE_ADDRESS_SHIPPING_SET,
-            'Shipping address set',
-            [
-                'city' => $shippingData['city'],
-                'country' => $shippingData['country'],
-                'shipping_method' => $shippingMethodCode,
-                'shipping_amount' => $shippingAmount
-            ]
-        );
-    }
-
-    /**
-     * Set payment method on quote
-     *
-     * @param Quote $quote
-     * @param OrderImportInterface $orderData
-     * @param ImportLogInterface $logEntry
-     */
-    private function setPaymentMethod(
-        Quote $quote,
-        OrderImportInterface $orderData,
-        ImportLogInterface $logEntry
-    ): void {
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::QUOTE_PAYMENT,
-            'Setting payment method',
-            ['method' => 'shopthru']
-        );
-
-        $payment = $quote->getPayment();
-        $payment->setMethod('shopthru');
-
-        // Set transaction ID if available
-        if ($orderData->getPaymentTransactionId()) {
-            $payment->setAdditionalInformation(
-                'transaction_id',
-                $orderData->getPaymentTransactionId()
-            );
-
-            $this->helper->addEventLog(
-                $logEntry->getImportId(),
-                EventType::QUOTE_PAYMENT_TRANSACTION,
-                'Set payment transaction ID',
-                ['transaction_id' => $orderData->getPaymentTransactionId()]
-            );
-        }
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::QUOTE_PAYMENT_SET,
-            'Payment method set'
-        );
-    }
-
-    /**
-     * Set shipping method on quote
-     *
-     * @param Quote $quote
-     * @param OrderImportInterface $orderData
-     * @param ImportLogInterface $logEntry
-     */
-    private function setShippingMethod(
-        Quote $quote,
-        OrderImportInterface $orderData,
-        ImportLogInterface $logEntry
-    ): void {
-        $shippingAddress = $quote->getShippingAddress();
-
-        // Force shipping amount
-        $shippingAmount = $this->helper->formatPrice($orderData->getShippingTotal() ?? 0);
-        $shippingMethodCode = $orderData->getShippingMethod();
-        $shippingMethodTitle = $orderData->getShippingTitle();
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::QUOTE_SHIPPING_METHOD,
-            'Setting shipping method',
-            [
-                'method' => $shippingMethodCode,
-                'title' => $shippingMethodTitle,
-                'amount' => $shippingAmount
-            ]
-        );
-
-
-        $shippingAddress->setShippingAmount($shippingAmount);
-        $shippingAddress->setBaseShippingAmount($shippingAmount);
-        $shippingAddress->setShippingMethod($shippingMethodCode);
-        $quote->setShippingAmount($shippingAmount);
-        $quote->setBaseShippingAmount($shippingAmount);
-
-        $shippingAddress->setCollectShippingRates(false);
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::QUOTE_SHIPPING_METHOD_SET,
-            'Shipping method set'
-        );
-    }
-
-    /**
-     * Create order from quote
-     *
-     * @param CartInterface $quote
-     * @param OrderImportInterface $orderData
-     * @param ImportLogInterface $logEntry
-     * @return Order
-     * @throws LocalizedException
-     */
-    private function createOrder(
-        CartInterface $quote,
-        OrderImportInterface $orderData,
-        ImportLogInterface $logEntry
-    ): Order {
-        $quote->collectTotals();
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::ORDER_CREATING,
-            'Creating order from quote',
-            ['quote_id' => $quote->getId()]
-        );
-
-        // Create order
-        $orderId = $this->cartManagement->placeOrder($quote->getId());
-        $order = $this->orderRepository->get($orderId);
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::ORDER_CREATED,
-            'Order created',
-            [
-                'order_id' => $order->getIncrementId(),
-                'grand_total' => $order->getGrandTotal()
-            ]
-        );
-
-        // Set order status based on configuration or Shopthru data
-        $configStatus = $this->moduleConfig->getOrderStatus();
-        $status = $configStatus ?: ($orderData->getStatus() ?? 'processing');
-
-        $order->setStatus($status);
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::ORDER_STATUS,
-            'Setting order status',
-            ['status' => $status]
-        );
-
-        // Save Shopthru order ID in order
-        $order->setData('ext_order_id', $orderData->getOrderId());
-
-        // Create invoice if auto-invoice is enabled
-        if ($this->moduleConfig->isAutoInvoiceEnabled()) {
-            $this->createInvoice($order, $logEntry);
-        }
-
-        // Save order
-        $this->orderRepository->save($order);
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::ORDER_SAVED,
-            'Order saved',
-            ['order_id' => $order->getIncrementId()]
-        );
-
-        return $order;
-    }
-
-    /**
-     * Decrement stock for order items
-     *
-     * @param Order $order
-     * @param ImportLogInterface $logEntry
-     */
-    private function decrementStock(Order $order, ImportLogInterface $logEntry): void
-    {
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::STOCK_DECREMENTING,
-            'Decrementing stock for order items',
-            ['order_id' => $order->getIncrementId()]
-        );
-
-        $stockUpdates = [];
-
-        foreach ($order->getAllItems() as $item) {
-            $productId = $item->getProductId();
-            $qty = $item->getQtyOrdered();
-
-            try {
-                $stockItem = $this->stockRegistry->getStockItem($productId);
-                $oldQty = $stockItem->getQty();
-                $stockItem->setQty($oldQty - $qty);
-
-                if ($stockItem->getQty() <= 0) {
-                    $stockItem->setIsInStock(false);
-                }
-
-                $this->stockRegistry->updateStockItemBySku($item->getSku(), $stockItem);
-
-                $stockUpdates[] = [
-                    'sku' => $item->getSku(),
-                    'previous_qty' => $oldQty,
-                    'new_qty' => $stockItem->getQty(),
-                    'delta' => -$qty
-                ];
-            } catch (\Exception $e) {
-                $this->helper->addEventLog(
-                    $logEntry->getImportId(),
-                    EventType::STOCK_DECREMENT_ERROR,
-                    'Error updating stock: ' . $e->getMessage(),
-                    ['sku' => $item->getSku()]
-                );
-                $this->helper->logError('Error updating stock: ' . $e->getMessage());
-            }
-        }
-
-        $this->helper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::STOCK_DECREMENTED,
-            'Stock decremented for order items',
-            ['stock_updates' => $stockUpdates]
-        );
-    }
-
-    /**
-     * Create invoice for order
-     *
-     * @param \Magento\Sales\Model\Order $order
-     * @param ImportLogInterface $logEntry
-     * @return \Magento\Sales\Model\Order\Invoice|null
-     */
-    private function createInvoice(Order $order, ImportLogInterface $logEntry): ?\Magento\Sales\Model\Order\Invoice
-    {
-        try {
-            $this->helper->addEventLog(
-                $logEntry->getImportId(),
-                EventType::INVOICE_CREATING,
-                'Creating invoice for order',
-                ['order_id' => $order->getIncrementId()]
-            );
-
-            if ($order->canInvoice()) {
-                $invoice = $order->prepareInvoice();
-                $invoice->register();
-                $invoice->pay();
-
-                $invoice->getOrder()->setIsInProcess(true);
-
-                $transactionSave = $this->objectManager->create(
-                    \Magento\Framework\DB\Transaction::class
-                )->addObject(
-                    $invoice
-                )->addObject(
-                    $invoice->getOrder()
-                );
-
-                $transactionSave->save();
-
-                $this->helper->addEventLog(
-                    $logEntry->getImportId(),
-                    EventType::INVOICE_CREATED,
-                    'Invoice created',
-                    [
-                        'invoice_id' => $invoice->getIncrementId(),
-                        'invoice_total' => $invoice->getGrandTotal()
-                    ]
-                );
-
-                return $invoice;
-            } else {
-                $this->helper->addEventLog(
-                    $logEntry->getImportId(),
-                    EventType::INVOICE_SKIPPED,
-                    'Cannot create invoice for order',
-                    ['reason' => 'Order cannot be invoiced']
-                );
-            }
-        } catch (\Exception $e) {
-            $this->helper->addEventLog(
-                $logEntry->getImportId(),
-                EventType::INVOICE_ERROR,
-                'Error creating invoice: ' . $e->getMessage(),
-                ['trace' => $e->getTraceAsString()]
-            );
-            $this->helper->logError('Error creating invoice: ' . $e->getMessage());
-        }
-
-        return null;
-    }
-
-    /**
-     * Extract first name from full name
-     *
-     * @param string $name
-     * @return string
-     */
-    private function getFirstName(string $name): string
-    {
-        $nameParts = explode(' ', trim($name), 2);
-        return $nameParts[0];
-    }
-
-    /**
-     * Extract last name from full name
-     *
-     * @param string $name
-     * @return string
-     */
-    private function getLastName(string $name): string
-    {
-        $nameParts = explode(' ', trim($name), 2);
-        return isset($nameParts[1]) ? $nameParts[1] : '.';
-    }
-
-    /**
      * Get order summary information
      *
-     * @param Order $order
+     * @param OrderInterface $order
      * @return array
      */
-    private function getOrderSummary(Order $order): array
+    private function getOrderSummary(OrderInterface $order): array
     {
         $items = [];
         foreach ($order->getAllItems() as $item) {
