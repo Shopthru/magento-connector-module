@@ -51,4 +51,12 @@
             <argument name="resourceModel" xsi:type="string">Shopthru\Connector\Model\ResourceModel\ImportLog</argument>
         </arguments>
     </type>
+
+    <type name="Magento\Framework\Console\CommandListInterface">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="shopthru_test-order-create" xsi:type="object">Shopthru\Connector\Console\Command\TestOrderCreate</item>
+            </argument>
+        </arguments>
+    </type>
 </config>
