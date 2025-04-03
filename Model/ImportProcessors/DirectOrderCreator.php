@@ -67,24 +67,8 @@ class DirectOrderCreator
 
     ) {}
 
-    /**
-     * Create an order directly without using quote
-     *
-     * @param OrderImportInterface $orderData
-     * @param ImportLogInterface $logEntry
-     * @return \Magento\Sales\Model\Order
-     * @throws LocalizedException
-     */
-    public function create(
-        OrderImportInterface $orderData,
-        ImportLogInterface $logEntry
-    ): Order {
-        $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
-            EventType::ORDER_CREATING_DIRECT,
-            'Creating order directly without quote'
-        );
-
+    private function initializeOrder(OrderImportInterface $orderData): OrderInterface
+    {
         // Get store
         $storeId = $orderData->getExtStoreId() ? (int)$orderData->getExtStoreId() : null;
         $store = $this->loggingHelper->getStore($storeId);
@@ -99,7 +83,19 @@ class DirectOrderCreator
         // Set basic order information
         $order->setState(Order::STATE_PROCESSING);
         $order->setStatus($this->moduleConfig->getOrderStatus() ?: 'processing');
+        $order->setIsVirtual((bool) $orderData->getIsVirtual() ?: 0);
 
+        // Set currency code
+        $order->setOrderCurrencyCode($orderData->getCurrency() ?: 'GBP');
+        $order->setBaseCurrencyCode($orderData->getCurrency() ?: 'GBP');
+        $order->setGlobalCurrencyCode($orderData->getCurrency() ?: 'GBP');
+        $order->setStoreCurrencyCode($orderData->getCurrency() ?: 'GBP');
+
+        return $order;
+    }
+
+    private function setCustomerInformation(OrderInterface $order, OrderImportInterface $orderData, ImportLogInterface $logEntry): void
+    {
         // Set customer information
         $customerData = $orderData->getCustomer();
 
@@ -131,23 +127,10 @@ class DirectOrderCreator
                 );
             }
         }
+    }
 
-        // Set missing information
-        $order->setIsVirtual((bool) $orderData->getIsVirtual() ?: 0);
-
-
-        // Set currency code
-        $order->setOrderCurrencyCode($orderData->getCurrency() ?: 'GBP');
-        $order->setBaseCurrencyCode($orderData->getCurrency() ?: 'GBP');
-        $order->setGlobalCurrencyCode($orderData->getCurrency() ?: 'GBP');
-        $order->setStoreCurrencyCode($orderData->getCurrency() ?: 'GBP');
-
-        // Set addresses
-        $this->setOrderAddresses($order, $orderData, $logEntry);
-
-        // Set payment
-        $this->setOrderPayment($order, $orderData, $logEntry);
-
+    private function setShippingInformation(OrderInterface $order, OrderImportInterface $orderData): void
+    {
         // Set shipping method
         $shippingMethodCode = $orderData->getShippingMethod() ?: 'flatrate_flatrate';
         $shippingMethodTitle = $orderData->getShippingTitle() ?: 'Flat Rate Shipping';
@@ -159,11 +142,10 @@ class DirectOrderCreator
         $order->setBaseShippingAmount($shippingAmount);
         $order->setShippingInclTax($shippingAmount);
         $order->setBaseShippingInclTax($shippingAmount);
-        $order->setTaxAmount($orderData->getTaxTotal());
-        $order->setTaxInvoiced($orderData->getTaxTotal());
+    }
 
-        // Add order items
-        $this->addOrderItems($order, $orderData, $logEntry);
+    private function setOrderTotals(OrderInterface $order, OrderImportInterface $orderData)
+    {
 
         // Set order totals
         $subTotal = (float)$orderData->getSubTotal();
@@ -174,6 +156,8 @@ class DirectOrderCreator
         $order->setSubtotalInclTax($subTotal);
         $order->setBaseSubtotal($subTotal);
         $order->setBaseSubtotalInclTax($subTotal);
+        $order->setTaxAmount($orderData->getTaxTotal());
+        $order->setTaxInvoiced($orderData->getTaxTotal());
 
         if ($discountAmount > 0) {
             $order->setDiscountAmount(-$discountAmount);
@@ -189,13 +173,40 @@ class DirectOrderCreator
 
         $order->setGrandTotal($grandTotal);
         $order->setBaseGrandTotal($grandTotal);
+        $order->setTotalPaid($grandTotal);
+        $order->setBaseTotalPaid($grandTotal);
+    }
+
+
+    /**
+     * Create an order directly without using quote
+     *
+     * @param OrderImportInterface $orderData
+     * @param ImportLogInterface $logEntry
+     * @return \Magento\Sales\Model\Order
+     * @throws LocalizedException
+     */
+    public function create(
+        OrderImportInterface $orderData,
+        ImportLogInterface $logEntry
+    ): Order {
+        $this->loggingHelper->addEventLog(
+            $logEntry->getImportId(),
+            EventType::ORDER_CREATING_DIRECT,
+            'Creating order directly without quote'
+        );
+
+        $order = $this->initializeOrder($orderData);
+        $this->setCustomerInformation($order, $orderData, $logEntry);
+        $this->setOrderAddresses($order, $orderData, $logEntry);
+        $this->addOrderItems($order, $orderData, $logEntry);
+        $this->setOrderPayment($order, $orderData, $logEntry);
+        $this->setShippingInformation($order, $orderData, $logEntry);
+        $this->setOrderTotals($order, $orderData, $logEntry);
+
 
         // Set external order ID
         $order->setData('ext_order_id', $orderData->getOrderId());
-
-        // Set total paid if the order is paid
-        $order->setTotalPaid($grandTotal);
-        $order->setBaseTotalPaid($grandTotal);
 
         // Save the order
         $this->orderRepository->save($order);
