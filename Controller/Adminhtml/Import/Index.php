@@ -14,7 +14,7 @@ class Index extends Action implements HttpGetActionInterface
     /**
      * Authorization level
      */
-    const ADMIN_RESOURCE = 'Shopthru_Connector::import';
+    public const ADMIN_RESOURCE = 'Shopthru_Connector::import';
 
     /**
      * @var PageFactory

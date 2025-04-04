@@ -56,7 +56,6 @@ class PlaceQuoteOrder
         $order = $this->createOrder($quote, $orderData, $logEntry);
 
         return $order;
-
     }
 
     /**
@@ -69,7 +68,7 @@ class PlaceQuoteOrder
      */
     private function prepareCustomer(
         OrderImportInterface $orderData,
-                             $store,
+        $store,
         ImportLogInterface $logEntry
     ): ?int {
         $customerData = $orderData->getCustomer();

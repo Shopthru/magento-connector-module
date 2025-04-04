@@ -19,12 +19,15 @@ class Config
     private const XML_PATH_AUTO_INVOICE = 'shopthru/general/auto_invoice';
     private const XML_PATH_ORDER_STATUS = 'shopthru/general/order_status';
 
+    private const XML_PATH_TEST_ORDER_SKU = 'shopthru/general/test_order_sku';
+
     /**
      * @param ScopeConfigInterface $scopeConfig
      */
     public function __construct(
         private readonly ScopeConfigInterface $scopeConfig
-    ) {}
+    ) {
+    }
 
     /**
      * Check if trigger email is enabled
@@ -111,6 +114,19 @@ class Config
     {
         return $this->scopeConfig->getValue(
             self::XML_PATH_ORDER_STATUS,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * @param int|null $storeId
+     * @return mixed
+     */
+    public function getTestOrderSku(?int $storeId = null)
+    {
+        return $this->scopeConfig->getValue(
+            self::XML_PATH_TEST_ORDER_SKU,
             ScopeInterface::SCOPE_STORE,
             $storeId
         );

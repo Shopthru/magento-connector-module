@@ -6,26 +6,26 @@ interface ImportLogInterface
     /**
      * Constants for keys of data array
      */
-    const IMPORT_ID = 'import_id';
-    const PARENT_IMPORT_ID = 'parent_import_id';
-    const SHOPTHRU_ORDER_ID = 'shopthru_order_id';
-    const SHOPTHRU_PUBLISHER_REF = 'shopthru_publisher_ref';
-    const SHOPTHRU_PUBLISHER_NAME = 'shopthru_publisher_name';
-    const STATUS = 'status';
-    const IMPORTED_AT = 'imported_at';
-    const CREATED_AT = 'created_at';
-    const LOG_DATA = 'log_data';
-    const SHOPTHRU_DATA = 'shopthru_data';
-    const ADDITIONAL_DATA = 'additional_data';
-    const FAILED_REASON = 'failed_reason';
-    const MAGENTO_ORDER_ID = 'magento_order_id';
+    public const IMPORT_ID = 'import_id';
+    public const PARENT_IMPORT_ID = 'parent_import_id';
+    public const SHOPTHRU_ORDER_ID = 'shopthru_order_id';
+    public const SHOPTHRU_PUBLISHER_REF = 'shopthru_publisher_ref';
+    public const SHOPTHRU_PUBLISHER_NAME = 'shopthru_publisher_name';
+    public const STATUS = 'status';
+    public const IMPORTED_AT = 'imported_at';
+    public const CREATED_AT = 'created_at';
+    public const LOG_DATA = 'log_data';
+    public const SHOPTHRU_DATA = 'shopthru_data';
+    public const ADDITIONAL_DATA = 'additional_data';
+    public const FAILED_REASON = 'failed_reason';
+    public const MAGENTO_ORDER_ID = 'magento_order_id';
 
     /**
      * Status Constants
      */
-    const STATUS_PENDING = 'pending';
-    const STATUS_SUCCESS = 'success';
-    const STATUS_FAILED = 'failed';
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_SUCCESS = 'success';
+    public const STATUS_FAILED = 'failed';
 
     /**
      * Get Import ID

@@ -9,6 +9,7 @@
                 <link_customer>0</link_customer>
                 <auto_invoice>1</auto_invoice>
                 <order_status>processing</order_status>
+                <test_order_sku>24-MB01</test_order_sku>
             </general>
             <payment>
                 <active>1</active>

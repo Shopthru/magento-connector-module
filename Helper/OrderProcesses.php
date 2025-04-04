@@ -19,11 +19,17 @@ class OrderProcesses extends AbstractHelper
         private readonly TransactionFactory $transactionFactory,
         private readonly OrderRepositoryInterface $orderRepository,
         private readonly StockRegistryInterface $stockRegistry,
-    ){
+    ) {
         parent::__construct($context);
     }
 
-    public function addCommentToOrder(OrderInterface $order, $comment, $isVisibleOnFront = false): OrderInterface
+    /**
+     * @param OrderInterface $order
+     * @param string $comment
+     * @param bool $isVisibleOnFront
+     * @return OrderInterface
+     */
+    public function addCommentToOrder(OrderInterface $order, string $comment, bool $isVisibleOnFront = false): OrderInterface
     {
         $order->addCommentToStatusHistory(
             comment:$comment,
@@ -34,11 +40,11 @@ class OrderProcesses extends AbstractHelper
         return $order;
     }
 
-    public function sendOrderEmail()
-    {
-
-    }
-
+    /**
+     * @param OrderInterface $order
+     * @return array
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     */
     public function decrementStock(OrderInterface $order): array
     {
         $stockUpdates = [];
@@ -67,6 +73,10 @@ class OrderProcesses extends AbstractHelper
         return $stockUpdates;
     }
 
+    /**
+     * @param OrderInterface $order
+     * @return \Magento\Sales\Model\Order\Invoice
+     */
     public function createInvoice(OrderInterface $order): \Magento\Sales\Model\Order\Invoice
     {
         $invoice = $order->prepareInvoice();

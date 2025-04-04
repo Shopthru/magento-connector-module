@@ -6,9 +6,9 @@ namespace Shopthru\Connector\Model;
 
 class ShippingMethod
 {
-    const FLATRATE = 'flatrate_flatrate';
-    const FREESHIPPING = 'freeshipping_freeshipping';
-    const TABLERATE = 'tablerate_bestway';
+    public const FLATRATE = 'flatrate_flatrate';
+    public const FREESHIPPING = 'freeshipping_freeshipping';
+    public const TABLERATE = 'tablerate_bestway';
 
     /**
      * Get default title for shipping method
@@ -18,7 +18,7 @@ class ShippingMethod
      */
     public static function getTitle(string $method): string
     {
-        switch($method) {
+        switch ($method) {
             case self::FLATRATE:
                 return 'Flat Rate';
             case self::FREESHIPPING:
@@ -65,7 +65,7 @@ class ShippingMethod
             return self::FLATRATE;
         }
 
-        switch($method) {
+        switch ($method) {
             case self::FLATRATE:
             case self::FREESHIPPING:
             case self::TABLERATE:

@@ -219,10 +219,7 @@ class Logging extends AbstractHelper
      */
     public function formatPrice(float $price, ?int $storeId = null): float
     {
-        // Shopthru sends prices in minor units (cents, pence, etc.)
-        // Convert to standard currency format
         return $price;
-        return $price / 100;
     }
 
     /**

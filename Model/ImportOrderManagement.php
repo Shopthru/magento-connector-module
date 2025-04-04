@@ -27,6 +27,17 @@ use Shopthru\Connector\Model\ImportProcessors\PlaceQuoteOrder;
 
 class ImportOrderManagement implements ImportOrderManagementInterface
 {
+    /**
+     * @param ProductRepositoryInterface $productRepository
+     * @param CustomerRepositoryInterface $customerRepository
+     * @param Logging $loggingHelper
+     * @param Config $moduleConfig
+     * @param OrderSender $orderSender
+     * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     * @param StockRegistryInterface $stockRegistry
+     * @param PlaceQuoteOrder $placeQuoteOrder
+     * @param DirectOrderCreator $directOrderCreator
+     */
     public function __construct(
         private readonly ProductRepositoryInterface $productRepository,
         private readonly CustomerRepositoryInterface $customerRepository,
@@ -37,7 +48,8 @@ class ImportOrderManagement implements ImportOrderManagementInterface
         private readonly StockRegistryInterface $stockRegistry,
         private readonly PlaceQuoteOrder $placeQuoteOrder,
         private readonly DirectOrderCreator $directOrderCreator,
-    ) {}
+    ) {
+    }
 
     /**
      * @inheritDoc
@@ -111,6 +123,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                     continue;
                 }
 
+                //TODO: Decide on which method to use
                 $order = $this->directOrderCreator->create($orderData, $logEntry);
 //                $order = $this->placeQuoteOrder->create($orderData, $logEntry);
 
@@ -315,7 +328,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
      */
     private function prepareCustomer(
         OrderImportInterface $orderData,
-                             $store,
+        $store,
         ImportLogInterface $logEntry
     ): ?int {
         $customerData = $orderData->getCustomer();

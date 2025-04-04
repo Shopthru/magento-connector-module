@@ -64,8 +64,8 @@ class DirectOrderCreator
         private readonly GroupRepositoryInterface $groupRepository,
         private readonly TransactionFactory $transactionFactory,
         private readonly DefaultData $defaultData
-
-    ) {}
+    ) {
+    }
 
     private function initializeOrder(OrderImportInterface $orderData): OrderInterface
     {
@@ -94,7 +94,10 @@ class DirectOrderCreator
         return $order;
     }
 
-    private function setCustomerInformation(OrderInterface $order, OrderImportInterface $orderData, ImportLogInterface $logEntry): void
+    private function setCustomerInformation(
+        OrderInterface $order,
+        OrderImportInterface $orderData,
+        ImportLogInterface $logEntry): void
     {
         // Set customer information
         $customerData = $orderData->getCustomer();
@@ -177,7 +180,6 @@ class DirectOrderCreator
         $order->setBaseTotalPaid($grandTotal);
     }
 
-
     /**
      * Create an order directly without using quote
      *
@@ -203,7 +205,6 @@ class DirectOrderCreator
         $this->setOrderPayment($order, $orderData, $logEntry);
         $this->setShippingInformation($order, $orderData, $logEntry);
         $this->setOrderTotals($order, $orderData, $logEntry);
-
 
         // Set external order ID
         $order->setData('ext_order_id', $orderData->getOrderId());
@@ -565,7 +566,7 @@ class DirectOrderCreator
             ['order_id' => $order->getIncrementId()]
         );
 
-        try{
+        try {
             $stockUpdates = $this->orderProcessesHelper->decrementStock($order);
         } catch (\Exception $e) {
             $this->loggingHelper->addEventLog(
@@ -576,7 +577,6 @@ class DirectOrderCreator
             );
             $this->loggingHelper->logError('Error updating stock: ' . $e->getMessage());
         }
-
 
         $this->loggingHelper->addEventLog(
             $logEntry->getImportId(),

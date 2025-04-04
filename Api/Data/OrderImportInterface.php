@@ -4,37 +4,34 @@ namespace Shopthru\Connector\Api\Data;
 
 interface OrderImportInterface
 {
-    /**
-     * Constants for keys of data array
-     */
-    const ORDER_ID = 'order_id';
-    const PUBLISHER = 'publisher';
-    const PRIMARY_SHORT_CODE = 'primary_short_code';
-    const PRIMARY_SKU = 'primary_sku';
-    const STATUS = 'status';
-    const CURRENCY = 'currency';
-    const LOCALE = 'locale';
-    const SUB_TOTAL = 'sub_total';
-    const TOTAL_PAID = 'total_paid';
-    const TOTAL = 'total';
-    const SHIPPING_TOTAL = 'shipping_total';
-    const PURCHASE_URL = 'purchase_url';
-    const DISCOUNT_TOTAL = 'discount_total';
-    const COMMISSION_TOTAL = 'commission_total';
-    const DISCOUNT_CODES_APPLIED = 'discount_codes_applied';
-    const CHECKOUT_DOMAIN = 'checkout_domain';
-    const EXT_STORE_ID = 'ext_store_id';
-    const EXT_ATTRIBUTES = 'ext_attributes';
-    const PAYMENT_METHOD = 'payment_method';
-    const PAYMENT_TRANSACTION_ID = 'payment_transaction_id';
-    const PAYMENT_DATA = 'payment_data';
-    const CREATED_AT = 'created_at';
-    const SHIPPING_METHOD = 'shipping_method';
-    const SHIPPING_TITLE = 'shipping_title';
-    const ITEMS = 'items';
-    const CUSTOMER = 'customer';
-    const TAX_TOTAL = 'tax_total';
-    const TOTAL_EX_TAX = 'total_excl_tax';
+    public const ORDER_ID = 'order_id';
+    public const PUBLISHER = 'publisher';
+    public const PRIMARY_SHORT_CODE = 'primary_short_code';
+    public const PRIMARY_SKU = 'primary_sku';
+    public const STATUS = 'status';
+    public const CURRENCY = 'currency';
+    public const LOCALE = 'locale';
+    public const SUB_TOTAL = 'sub_total';
+    public const TOTAL_PAID = 'total_paid';
+    public const TOTAL = 'total';
+    public const SHIPPING_TOTAL = 'shipping_total';
+    public const PURCHASE_URL = 'purchase_url';
+    public const DISCOUNT_TOTAL = 'discount_total';
+    public const COMMISSION_TOTAL = 'commission_total';
+    public const DISCOUNT_CODES_APPLIED = 'discount_codes_applied';
+    public const CHECKOUT_DOMAIN = 'checkout_domain';
+    public const EXT_STORE_ID = 'ext_store_id';
+    public const EXT_ATTRIBUTES = 'ext_attributes';
+    public const PAYMENT_METHOD = 'payment_method';
+    public const PAYMENT_TRANSACTION_ID = 'payment_transaction_id';
+    public const PAYMENT_DATA = 'payment_data';
+    public const CREATED_AT = 'created_at';
+    public const SHIPPING_METHOD = 'shipping_method';
+    public const SHIPPING_TITLE = 'shipping_title';
+    public const ITEMS = 'items';
+    public const CUSTOMER = 'customer';
+    public const TAX_TOTAL = 'tax_total';
+    public const TOTAL_EX_TAX = 'total_excl_tax';
 
     /**
      * Get Order ID

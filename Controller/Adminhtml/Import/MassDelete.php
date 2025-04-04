@@ -18,7 +18,7 @@ class MassDelete extends Action implements HttpPostActionInterface
     /**
      * Authorization level
      */
-    const ADMIN_RESOURCE = 'Shopthru_Connector::import';
+    public const ADMIN_RESOURCE = 'Shopthru_Connector::import';
 
     /**
      * @var Filter

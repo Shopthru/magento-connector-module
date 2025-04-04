@@ -40,6 +40,10 @@
                     <comment>Default status for newly imported orders from Shopthru</comment>
                     <source_model>Magento\Sales\Model\Config\Source\Order\Status</source_model>
                 </field>
+                <field id="test_order_sku" translate="label comment" type="text" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Test Order SKU</label>
+                    <comment>SKU of a product to use for testing order imports</comment>
+                </field>
             </group>
             <group id="payment" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>Payment Configuration</label>

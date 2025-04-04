@@ -27,5 +27,4 @@ class Data extends \Magento\Framework\App\Helper\AbstractHelper
         $nameParts = explode(' ', trim($name), 2);
         return isset($nameParts[1]) ? $nameParts[1] : '.';
     }
-
 }

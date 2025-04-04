@@ -6,6 +6,11 @@ use Magento\Framework\DataObject;
 
 class DefaultData extends DataObject
 {
+    /**
+     * Default order data
+     *
+     * @var array
+     */
     private $defaultOrderData = [
         'base_shipping_tax_amount' => 0,
         'base_tax_amount' => 0,
@@ -27,6 +32,11 @@ class DefaultData extends DataObject
         'base_shipping_discount_tax_compensation_amnt' => 0
     ];
 
+    /**
+     * Default item data
+     *
+     * @var array
+     */
     private $defaultItemData = [
         'product_options' => [],
         'weight' => 0,
@@ -38,11 +48,17 @@ class DefaultData extends DataObject
         'qty_backordered' => 0
     ];
 
+    /**
+     * @return array
+     */
     public function getDefaultOrderData()
     {
         return $this->defaultOrderData;
     }
 
+    /**
+     * @return array
+     */
     public function getDefaultItemData()
     {
         return $this->defaultItemData;

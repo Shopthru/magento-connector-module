@@ -19,7 +19,7 @@ class Shopthru extends AbstractMethod
     /**
      * Payment method code
      */
-    const CODE = 'shopthru';
+    public const CODE = 'shopthru';
 
     /**
      * @var string
