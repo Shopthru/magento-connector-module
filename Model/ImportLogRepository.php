@@ -111,6 +111,22 @@ class ImportLogRepository implements ImportLogRepositoryInterface
     /**
      * @inheritDoc
      */
+    public function deleteMultiple(array $importIds): ?int
+    {
+        try {
+            $connection = $this->resource->getConnection();
+            $tableName = $this->resource->getMainTable();
+            $where = $connection->quoteInto('import_id IN (?)', $importIds);
+            $deleteCount = $connection->delete($tableName, $where);
+            return $deleteCount;
+        } catch (\Exception $exception) {
+            throw new CouldNotDeleteException(__($exception->getMessage()));
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function deleteById($importId)
     {
         return $this->delete($this->getById($importId));

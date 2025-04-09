@@ -56,6 +56,7 @@
         <arguments>
             <argument name="commands" xsi:type="array">
                 <item name="shopthru_test-order-create" xsi:type="object">Shopthru\Connector\Console\Command\TestOrderCreate</item>
+                <item name="shopthru_clear_failed_import_logs" xsi:type="object">Shopthru\Connector\Console\Command\ClearFailedImportLogsCommand</item>
             </argument>
         </arguments>
     </type>

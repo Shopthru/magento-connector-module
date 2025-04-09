@@ -43,6 +43,14 @@ interface ImportLogRepositoryInterface
     public function delete(ImportLogInterface $importLog);
 
     /**
+     * Delete multiple import logs by ID
+     *
+     * @param array $importIds
+     * @return int|null
+     */
+    public function deleteMultiple(array $importIds): ?int;
+
+    /**
      * Delete import log by ID
      *
      * @param int $importId
