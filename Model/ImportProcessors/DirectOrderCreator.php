@@ -106,8 +106,7 @@ class DirectOrderCreator
         $order->setCustomerFirstname($this->getFirstName($customerData['name']));
         $order->setCustomerLastname($this->getLastName($customerData['name']));
         $order->setCustomerIsGuest(true)
-            ->setCustomerGroupId(Group::NOT_LOGGED_IN_ID)
-            ->setCustomerTaxClassId($this->groupRepository->getById(Group::NOT_LOGGED_IN_ID)->getTaxClassId());
+            ->setCustomerGroupId(Group::NOT_LOGGED_IN_ID);
 
         // If you want to link to a customer
         if ($this->moduleConfig->isLinkCustomerEnabled()) {
@@ -115,6 +114,7 @@ class DirectOrderCreator
                 $customer = $this->customerRepository->get($customerData['email']);
                 $order->setCustomerId($customer->getId());
                 $order->setCustomerIsGuest(0);
+                $order->setCustomerGroupId($customer->getGroupId());
 
                 $this->loggingHelper->addEventLog(
                     $logEntry->getImportId(),
