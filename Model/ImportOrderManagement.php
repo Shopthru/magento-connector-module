@@ -79,7 +79,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
 
             // Log initial event
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::IMPORT_STARTED,
                 'Started processing Shopthru order: ' . $shopthruOrderId
             );
@@ -88,15 +88,15 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 // Check if order with this Shopthru ID already exists
                 $existingOrderId = $this->checkExistingOrder($shopthruOrderId);
                 if ($existingOrderId) {
-                    $this->helper->addEventLog(
-                        $logEntry->getImportId(),
+                    $this->loggingHelper->addEventLog(
+                        $logEntry,
                         EventType::IMPORT_DUPLICATE,
                         'Order already exists in Magento',
                         ['magento_order_id' => $existingOrderId]
                     );
 
-                    $this->helper->updateImportLog(
-                        $logEntry->getImportId(),
+                    $this->loggingHelper->updateImportLog(
+                        $logEntry,
                         ImportLogInterface::STATUS_FAILED,
                         null,
                         "Order with Shopthru ID {$shopthruOrderId} already exists in Magento (Order #{$existingOrderId})"
@@ -112,13 +112,13 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 // Check stock levels if needed
                 if (!$this->validateStock($orderData, $logEntry)) {
                     $this->loggingHelper->addEventLog(
-                        $logEntry->getImportId(),
+                        $logEntry,
                         EventType::STOCK_INSUFFICIENT,
                         'Insufficient stock for one or more products'
                     );
 
                     $this->loggingHelper->updateImportLog(
-                        $logEntry->getImportId(),
+                        $logEntry,
                         ImportLogInterface::STATUS_FAILED,
                         null,
                         "Insufficient stock for one or more products in the order"
@@ -133,7 +133,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 // Send email if enabled
                 if ($this->moduleConfig->isTriggerEmailEnabled()) {
                     $this->loggingHelper->addEventLog(
-                        $logEntry->getImportId(),
+                        $logEntry,
                         EventType::EMAIL_SENDING,
                         'Sending order confirmation email',
                         ['order_id' => $order->getIncrementId()]
@@ -142,14 +142,14 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                     $this->orderSender->send($order);
 
                     $this->loggingHelper->addEventLog(
-                        $logEntry->getImportId(),
+                        $logEntry,
                         EventType::EMAIL_SENT,
                         'Order confirmation email sent',
                         ['order_id' => $order->getIncrementId()]
                     );
                 } else {
                     $this->loggingHelper->addEventLog(
-                        $logEntry->getImportId(),
+                        $logEntry,
                         EventType::EMAIL_SKIPPED,
                         'Order confirmation email skipped due to configuration'
                     );
@@ -157,7 +157,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
 
                 // Log completion event
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::IMPORT_COMPLETED,
                     'Order import completed successfully',
                     ['order_id' => $order->getIncrementId()]
@@ -165,7 +165,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
 
                 // Update log status to success
                 $this->loggingHelper->updateImportLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     ImportLogInterface::STATUS_SUCCESS,
                     ['order_info' => $this->getOrderSummary($order)],
                     null,
@@ -176,7 +176,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
             } catch (\Exception $e) {
                 // Log the error
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::IMPORT_ERROR,
                     'Error importing order: ' . $e->getMessage(),
                     ['trace' => $e->getTraceAsString()]
@@ -188,7 +188,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                     ['trace' => $e->getTraceAsString()]
                 );
                 $this->loggingHelper->updateImportLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     ImportLogInterface::STATUS_FAILED,
                     null,
                     $e->getMessage()
@@ -238,7 +238,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
         // If allow zero stock is enabled, skip validation
         if ($this->moduleConfig->isAllowZeroStockEnabled()) {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::STOCK_VALIDATION_SKIPPED,
                 'Stock validation skipped due to configuration'
             );
@@ -246,7 +246,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
         }
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::STOCK_VALIDATION_STARTED,
             'Started validating stock for order items'
         );
@@ -274,7 +274,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 }
             } catch (NoSuchEntityException $e) {
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::STOCK_VALIDATION_ERROR,
                     'Product not found: ' . $sku,
                     ['error' => $e->getMessage()]
@@ -288,7 +288,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 continue;
             } catch (\Exception $e) {
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::STOCK_VALIDATION_ERROR,
                     'Error checking stock: ' . $e->getMessage(),
                     ['sku' => $sku]
@@ -305,13 +305,13 @@ class ImportOrderManagement implements ImportOrderManagementInterface
 
         if ($allItemsInStock) {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::STOCK_VALIDATION_SUCCESS,
                 'All items are in stock'
             );
         } else {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::STOCK_VALIDATION_FAILED,
                 'Some items are out of stock',
                 ['out_of_stock_items' => $outOfStockItems]
@@ -339,7 +339,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
         $customerId = null;
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::CUSTOMER_PREPARING,
             'Preparing customer data',
             ['email' => $customerEmail]
@@ -352,7 +352,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 $customerId = $customer->getId();
 
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::CUSTOMER_FOUND,
                     'Found existing customer',
                     ['customer_id' => $customerId]
@@ -360,14 +360,14 @@ class ImportOrderManagement implements ImportOrderManagementInterface
             } catch (NoSuchEntityException $e) {
                 // Customer doesn't exist, we'll continue with a guest order
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::CUSTOMER_GUEST,
                     'No existing customer found, proceeding with guest checkout'
                 );
                 $customerId = null;
             } catch (\Exception $e) {
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::CUSTOMER_ERROR,
                     'Error finding customer: ' . $e->getMessage(),
                     ['email' => $customerEmail]
@@ -377,7 +377,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
             }
         } else {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::CUSTOMER_GUEST,
                 'Using guest checkout (customer linking disabled)'
             );

@@ -106,13 +106,18 @@ class Logging extends AbstractHelper
      * @return \Shopthru\Connector\Api\Data\ImportLogInterface|null
      */
     public function addEventLog(
-        int $importId,
+        int|ImportLogInterface $importLog,
         string $eventName,
         ?string $description = null,
         ?array $additionalData = null
     ): ?ImportLogInterface {
         try {
-            $importLog = $this->importLogRepository->getById($importId);
+            if ($importLog instanceof ImportLogInterface) {
+                $importId = $importLog->getImportId();
+            } else {
+                $importId = $importLog;
+                $importLog = $this->importLogRepository->getById($importId);
+            }
 
             // Get existing log data or initialize empty array
             $logData = $importLog->getLogData();
@@ -160,14 +165,19 @@ class Logging extends AbstractHelper
      * @return \Shopthru\Connector\Api\Data\ImportLogInterface|null
      */
     public function updateImportLog(
-        int $importId,
+        int|ImportLogInterface $importLog,
         ?string $status = null,
         ?array $additionalData = null,
         ?string $failedReason = null,
         ?string $magentoOrderId = null
     ): ?ImportLogInterface {
         try {
-            $importLog = $this->importLogRepository->getById($importId);
+            if ($importLog instanceof ImportLogInterface) {
+                $importId = $importLog->getImportId();
+            } else {
+                $importId = $importLog;
+                $importLog = $this->importLogRepository->getById($importId);
+            }
 
             if ($status !== null) {
                 $importLog->setStatus($status);
