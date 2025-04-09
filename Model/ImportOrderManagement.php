@@ -48,6 +48,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
         private readonly StockRegistryInterface $stockRegistry,
         private readonly PlaceQuoteOrder $placeQuoteOrder,
         private readonly DirectOrderCreator $directOrderCreator,
+        private readonly ImportOrderContext $importOrderContext
     ) {
     }
 
@@ -57,6 +58,9 @@ class ImportOrderManagement implements ImportOrderManagementInterface
     public function importOrders(array $orders): array
     {
         $result = [];
+
+        //set context of shopthru import orders
+        $this->importOrderContext->setIsShopthruImport(true);
 
         foreach ($orders as $orderData) {
             $shopthruOrderId = $orderData->getOrderId();
@@ -123,7 +127,6 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                     continue;
                 }
 
-                //TODO: Decide on which method to use
                 $order = $this->directOrderCreator->create($orderData, $logEntry);
 //                $order = $this->placeQuoteOrder->create($orderData, $logEntry);
 
