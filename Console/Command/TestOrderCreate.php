@@ -2,6 +2,9 @@
 
 namespace Shopthru\Connector\Console\Command;
 
+use Magento\Framework\App\State;
+use Magento\Framework\Console\Cli;
+
 use Shopthru\Connector\Api\ImportOrderManagementInterface;
 use Shopthru\Connector\Model\OrderImport;
 use Symfony\Component\Console\Command\Command;
@@ -14,12 +17,12 @@ class TestOrderCreate extends Command
     /**
      * @param ImportOrderManagementInterface $importOrderManagement
      * @param Config $shopthruConfig
-     * @param \Magento\Framework\App\State $state
+     * @param State $state
      */
     protected function __construct(
         private readonly ImportOrderManagementInterface $importOrderManagement,
         private readonly Config $shopthruConfig,
-        private readonly \Magento\Framework\App\State $state,
+        private readonly State $state,
     ) {
         return parent::__construct();
     }
@@ -48,8 +51,19 @@ class TestOrderCreate extends Command
         $data = $this->getTestOrderData();
 
         $logEntries = $this->importOrderManagement->importOrders($data);
-        $output->writeln('Test orders imported');
-        return 1;
+        $output->writeln('Imported ' . count($logEntries) . ' orders');
+
+        foreach ($logEntries as $logEntry) {
+            $output->writeln('--------------------------');
+            $output->writeln('Import ID: ' . $logEntry->getImportId());
+            $output->writeln('Shopthru Order ID: ' . $logEntry->getShopthruOrderId());
+            $output->writeln('Status: ' . $logEntry->getStatus());
+            $message = $logEntry->getFailedReason() ? 'Failed Reason: ' . $logEntry->getFailedReason() : 'Magento Order ID: ' . $logEntry->getMagentoOrderId();
+            $output->writeln($message);
+            $output->writeln('--------------------------');
+        }
+        $output->writeln('Test orders import complete');
+        return Cli::RETURN_SUCCESS;
     }
 
     /**
@@ -60,7 +74,8 @@ class TestOrderCreate extends Command
         return
             [
                 new OrderImport([
-                    'order_id' => uniqid("shopthru-test-"),
+//                    'order_id' => uniqid("shopthru-test-"),
+                    'order_id' => "shopthru-test",
                     'publisher' => [
                         'name' => 'Shopthru Demo',
                         'ref' => 'STDM'
