@@ -16,6 +16,8 @@ With this connector installed, your products can be sold on the Shopthru marketp
 
 ### Via Composer (Recommended)
 
+```Composer install is currently not supported.```
+
 1. Open a terminal and navigate to your Magento installation directory
 2. Run the following commands:
 
@@ -61,7 +63,16 @@ After installation, you'll need to configure the module:
 - **Automatically invoice orders**: When enabled, orders will be automatically invoiced upon import (Default: Yes)
 - **Order status for new orders**: Sets the default status for newly imported orders (Default: Processing)
 
-## Payment Method
+## Developer Testing
+
+The import process can be tested using the Magento CLI: 
+
+```bash
+shopthru:test-order-create
+```
+
+
+## Shopthru Payment Method
 
 The module installs a special "Shopthru" payment method that is used only for imported orders. This payment method is not visible to customers in your store's checkout but allows proper processing of Shopthru orders.
 
@@ -86,6 +97,14 @@ The log view provides the following information:
 - **Failed Reason**: If the import failed, displays the reason for failure
 
 You can click on an individual log entry to view detailed information about the import process, including a step-by-step record of events that occurred during the import.
+
+### Clearing Failed Import Logs
+
+To clear all failed import logs, you can use the following command in the Magento CLI:
+
+```bash
+shopthru:clear-failed-import-logs
+```
 
 ## Support
 
