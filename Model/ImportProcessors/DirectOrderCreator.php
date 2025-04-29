@@ -117,14 +117,14 @@ class DirectOrderCreator
                 $order->setCustomerGroupId($customer->getGroupId());
 
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::CUSTOMER_FOUND,
                     'Linked order to existing customer',
                     ['customer_id' => $customer->getId()]
                 );
             } catch (\Exception $e) {
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::CUSTOMER_GUEST,
                     'No customer found, using guest checkout'
                 );
@@ -242,7 +242,7 @@ class DirectOrderCreator
         $order->addStatusHistoryComment('Order cancelled by Shopthru');
         $this->orderRepository->save($order);
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::ORDER_STATUS,
             'Order cancelled.'
         );
@@ -253,7 +253,7 @@ class DirectOrderCreator
     {
         $this->orderRepository->delete($order);
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::ORDER_DELETED,
             'Order deleted.'
         );
@@ -470,7 +470,7 @@ class DirectOrderCreator
                 $itemsSubtotal += $rowTotal;
 
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::ORDER_ITEM_ADDED,
                     'Added item to order',
                     [
@@ -482,7 +482,7 @@ class DirectOrderCreator
                 );
             } catch (\Exception $e) {
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::ORDER_ITEM_ERROR,
                     'Error adding item to order: ' . $e->getMessage(),
                     ['sku' => $sku]
@@ -497,7 +497,7 @@ class DirectOrderCreator
         $providedSubtotal = (float)$orderData->getSubTotal();
         if (abs($providedSubtotal - $itemsSubtotal) > 0.001) {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::ORDER_SUBTOTAL_ADJUSTED,
                 'Adjusting order subtotal to match Shopthru data',
                 [
@@ -568,7 +568,7 @@ class DirectOrderCreator
     {
         try {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::INVOICE_CREATING,
                 'Creating invoice for order',
                 ['order_id' => $order->getIncrementId()]
@@ -599,7 +599,7 @@ class DirectOrderCreator
 
                 // Log invoice creation success
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::INVOICE_CREATED,
                     'Invoice created and marked as paid',
                     [
@@ -613,7 +613,7 @@ class DirectOrderCreator
                 return $invoice;
             } else {
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::INVOICE_SKIPPED,
                     'Cannot create invoice for order',
                     [
@@ -625,7 +625,7 @@ class DirectOrderCreator
             }
         } catch (\Exception $e) {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::INVOICE_ERROR,
                 'Error creating invoice: ' . $e->getMessage(),
                 [
@@ -649,7 +649,7 @@ class DirectOrderCreator
     private function decrementStock(OrderInterface $order, ImportLogInterface $logEntry): void
     {
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::STOCK_DECREMENTING,
             'Decrementing stock for order items',
             ['order_id' => $order->getIncrementId()]
@@ -659,7 +659,7 @@ class DirectOrderCreator
             $stockUpdates = $this->orderProcessesHelper->decrementStock($order);
         } catch (\Exception $e) {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::STOCK_DECREMENT_ERROR,
                 'Error updating stock: ' . $e->getMessage(),
                 []
@@ -668,7 +668,7 @@ class DirectOrderCreator
         }
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::STOCK_DECREMENTED,
             'Stock decremented for order items',
             ['stock_updates' => $stockUpdates]
@@ -687,7 +687,7 @@ class DirectOrderCreator
         // Check if email sending is enabled in the configuration
         if (!$this->moduleConfig->isTriggerEmailEnabled()) {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::EMAIL_SKIPPED,
                 'Email sending is disabled in configuration',
                 ['order_id' => $order->getIncrementId()]
@@ -697,7 +697,7 @@ class DirectOrderCreator
 
         try {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::EMAIL_SENDING,
                 'Sending order confirmation email',
                 ['order_id' => $order->getIncrementId()]
@@ -708,7 +708,7 @@ class DirectOrderCreator
 
             if ($emailSent) {
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::EMAIL_SENT,
                     'Order confirmation email sent successfully',
                     ['order_id' => $order->getIncrementId()]
@@ -716,7 +716,7 @@ class DirectOrderCreator
                 return true;
             } else {
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::EMAIL_ERROR,
                     'Failed to send order confirmation email',
                     ['order_id' => $order->getIncrementId()]
@@ -725,7 +725,7 @@ class DirectOrderCreator
             }
         } catch (\Exception $e) {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::EMAIL_ERROR,
                 'Error sending order confirmation email: ' . $e->getMessage(),
                 [

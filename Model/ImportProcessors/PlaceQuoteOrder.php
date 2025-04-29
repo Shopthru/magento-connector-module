@@ -76,7 +76,7 @@ class PlaceQuoteOrder
         $customerId = null;
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::CUSTOMER_PREPARING,
             'Preparing customer data',
             ['email' => $customerEmail]
@@ -89,7 +89,7 @@ class PlaceQuoteOrder
                 $customerId = $customer->getId();
 
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::CUSTOMER_FOUND,
                     'Found existing customer',
                     ['customer_id' => $customerId]
@@ -97,14 +97,14 @@ class PlaceQuoteOrder
             } catch (NoSuchEntityException $e) {
                 // Customer doesn't exist, we'll continue with a guest order
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::CUSTOMER_GUEST,
                     'No existing customer found, proceeding with guest checkout'
                 );
                 $customerId = null;
             } catch (\Exception $e) {
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::CUSTOMER_ERROR,
                     'Error finding customer: ' . $e->getMessage(),
                     ['email' => $customerEmail]
@@ -114,7 +114,7 @@ class PlaceQuoteOrder
             }
         } else {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::CUSTOMER_GUEST,
                 'Using guest checkout (customer linking disabled)'
             );
@@ -140,7 +140,7 @@ class PlaceQuoteOrder
         ImportLogInterface $logEntry
     ): CartInterface {
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::QUOTE_CREATING,
             'Creating new quote'
         );
@@ -155,7 +155,7 @@ class PlaceQuoteOrder
         $quote->setCurrency();
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::QUOTE_CREATED,
             'Quote created',
             ['quote_id' => $quote->getId()]
@@ -164,7 +164,7 @@ class PlaceQuoteOrder
         // Set customer data
         if ($customerId) {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::QUOTE_CUSTOMER,
                 'Assigning registered customer to quote',
                 ['customer_id' => $customerId]
@@ -178,7 +178,7 @@ class PlaceQuoteOrder
             $customerData = $orderData->getCustomer();
 
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::QUOTE_GUEST,
                 'Setting up guest checkout',
                 ['email' => $customerData['email']]
@@ -212,7 +212,7 @@ class PlaceQuoteOrder
         $this->cartRepository->save($quote);
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::QUOTE_FINALIZED, // Use Model Constant
             'Quote finalized and saved with forced shipping amount',
             [
@@ -241,7 +241,7 @@ class PlaceQuoteOrder
         $items = $orderData->getItems();
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::QUOTE_ITEMS_ADDING,
             'Adding items to quote',
             ['item_count' => count($items)]
@@ -256,7 +256,7 @@ class PlaceQuoteOrder
                 $product = $this->productRepository->get($sku);
 
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::QUOTE_ITEM_ADDING,
                     'Adding item to quote: ' . $product->getName(),
                     [
@@ -274,7 +274,7 @@ class PlaceQuoteOrder
                     $quoteItem->setOriginalCustomPrice($price);
 
                     $this->loggingHelper->addEventLog(
-                        $logEntry->getImportId(),
+                        $logEntry,
                         EventType::QUOTE_ITEM_CUSTOM_PRICE,
                         'Applied custom price to item',
                         [
@@ -293,7 +293,7 @@ class PlaceQuoteOrder
                     $quoteItem->setData('shopthru_discount_amount', $discountAmount);
 
                     $this->loggingHelper->addEventLog(
-                        $logEntry->getImportId(),
+                        $logEntry,
                         EventType::QUOTE_ITEM_DISCOUNT,
                         'Applied item discount',
                         [
@@ -307,7 +307,7 @@ class PlaceQuoteOrder
                 $quoteItem->save();
 
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::QUOTE_ITEM_ADDED,
                     'Item added to quote',
                     [
@@ -317,7 +317,7 @@ class PlaceQuoteOrder
                 );
             } catch (NoSuchEntityException $e) {
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::QUOTE_ITEM_ERROR,
                     'Product not found: ' . $sku,
                     ['error' => $e->getMessage()]
@@ -327,7 +327,7 @@ class PlaceQuoteOrder
         }
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::QUOTE_ITEMS_ADDED,
             'All items added to quote',
             ['items_count' => count($quote->getAllItems())]
@@ -350,7 +350,7 @@ class PlaceQuoteOrder
         $billingData = $customerData['billing_address'];
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::QUOTE_ADDRESS_BILLING,
             'Setting billing address'
         );
@@ -368,7 +368,7 @@ class PlaceQuoteOrder
         $billingAddress->setSameAsBilling(0);
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::QUOTE_ADDRESS_BILLING_SET,
             'Billing address set',
             [
@@ -395,7 +395,7 @@ class PlaceQuoteOrder
         $shippingData = $customerData['shipping_address'];
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::QUOTE_ADDRESS_SHIPPING,
             'Setting shipping address and marking for free shipping override'
         );
@@ -424,7 +424,7 @@ class PlaceQuoteOrder
         $shippingAddress->collectShippingRates();
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::QUOTE_ADDRESS_SHIPPING_SET,
             'Shipping address set',
             [
@@ -449,7 +449,7 @@ class PlaceQuoteOrder
         ImportLogInterface $logEntry
     ): void {
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::QUOTE_PAYMENT,
             'Setting payment method',
             ['method' => 'shopthru']
@@ -476,7 +476,7 @@ class PlaceQuoteOrder
             $payment->setLastTransId($orderData->getPaymentTransactionId());
 
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::QUOTE_PAYMENT_TRANSACTION,
                 'Set payment transaction ID',
                 ['transaction_id' => $orderData->getPaymentTransactionId()]
@@ -484,7 +484,7 @@ class PlaceQuoteOrder
         }
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::QUOTE_PAYMENT_SET,
             'Payment method set'
         );
@@ -508,7 +508,7 @@ class PlaceQuoteOrder
         $shippingMethodTitle = $orderData->getShippingTitle() ?: 'Shopthru Shipping';
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::QUOTE_SHIPPING_METHOD,
             'Setting shipping method',
             [
@@ -523,7 +523,7 @@ class PlaceQuoteOrder
         $shippingAddress->collectShippingRates();
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::QUOTE_SHIPPING_METHOD_SET,
             'Shipping method set'
         );
@@ -558,7 +558,7 @@ class PlaceQuoteOrder
         $this->cartRepository->save($quote);
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::ORDER_CREATING,
             'Creating order from quote',
             ['quote_id' => $quote->getId()]
@@ -579,7 +579,7 @@ class PlaceQuoteOrder
             $order->setBaseGrandTotal($order->getBaseSubtotal() - abs($order->getBaseDiscountAmount()) + $shippingTotal);
 
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::ORDER_SHIPPING_CORRECTED,
                 'Corrected shipping amount on final order',
                 [
@@ -595,7 +595,7 @@ class PlaceQuoteOrder
         $this->storeDiscountInformation($order, $orderData);
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::ORDER_CREATED,
             'Order created',
             [
@@ -611,7 +611,7 @@ class PlaceQuoteOrder
         $order->setStatus($status);
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::ORDER_STATUS,
             'Setting order status',
             ['status' => $status]
@@ -629,7 +629,7 @@ class PlaceQuoteOrder
         $this->orderRepository->save($order);
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::ORDER_SAVED,
             'Order saved',
             ['order_id' => $order->getIncrementId()]
@@ -705,7 +705,7 @@ class PlaceQuoteOrder
     {
         try {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::INVOICE_CREATING,
                 'Creating invoice for order',
                 ['order_id' => $order->getIncrementId()]
@@ -716,7 +716,7 @@ class PlaceQuoteOrder
 
                 // Log invoice creation success
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::INVOICE_CREATED,
                     'Invoice created and marked as paid',
                     [
@@ -730,7 +730,7 @@ class PlaceQuoteOrder
                 return $invoice;
             } else {
                 $this->loggingHelper->addEventLog(
-                    $logEntry->getImportId(),
+                    $logEntry,
                     EventType::INVOICE_SKIPPED,
                     'Cannot create invoice for order',
                     [
@@ -742,7 +742,7 @@ class PlaceQuoteOrder
             }
         } catch (\Exception $e) {
             $this->loggingHelper->addEventLog(
-                $logEntry->getImportId(),
+                $logEntry,
                 EventType::INVOICE_ERROR,
                 'Error creating invoice: ' . $e->getMessage(),
                 [
