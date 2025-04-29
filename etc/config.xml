@@ -22,10 +22,11 @@
                 <active>1</active>
                 <model>Shopthru\Connector\Model\Payment\Method\Shopthru</model>
                 <title>Shopthru</title>
-                <order_status>processing</order_status>
                 <allowspecific>0</allowspecific>
                 <group>offline</group>
                 <sort_order>500</sort_order>
+                <can_use_checkout>0</can_use_checkout>
+                <paymentInfoKeys>transaction_id,payment_data,payment_data_1,payment_data_2,payment_data_3,payment_data_4,payment_data_5</paymentInfoKeys>
             </shopthru>
         </payment>
     </default>
