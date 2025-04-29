@@ -68,12 +68,35 @@ class ImportLogRepository implements ImportLogRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getById($importId)
+    public function getById($importId): ImportLogInterface
     {
         $importLog = $this->importLogFactory->create();
         $this->resource->load($importLog, $importId);
         if (!$importLog->getId()) {
             throw new NoSuchEntityException(__('Import log with id "%1" does not exist.', $importId));
+        }
+        return $importLog;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getByShopthruOrderId($shopthruOrderId): ImportLogInterface
+    {
+        $importLog = $this->importLogFactory->create();
+        $this->resource->load($importLog, $shopthruOrderId, 'shopthru_order_id');
+        if (!$importLog->getId()) {
+            throw new NoSuchEntityException(__('Import log with Shopthru order id "%1" does not exist.', $shopthruOrderId));
+        }
+        return $importLog;
+    }
+
+    public function getByMagentoOrderId($magentoOrderId): ImportLogInterface
+    {
+        $importLog = $this->importLogFactory->create();
+        $this->resource->load($importLog, $magentoOrderId, 'magento_order_id');
+        if (!$importLog->getId()) {
+            throw new NoSuchEntityException(__('Import log with Magento order id "%1" does not exist.', $magentoOrderId));
         }
         return $importLog;
     }
