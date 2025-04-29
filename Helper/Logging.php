@@ -46,6 +46,16 @@ class Logging extends AbstractHelper
         return $this->importLogRepository;
     }
 
+    public function getLogByShopthruOrderId($shopthruOrderId): ImportLogInterface
+    {
+        return $this->importLogRepository->getByShopthruOrderId($shopthruOrderId);
+    }
+
+    public function getLogByMagentoOrderId($magentoOrderId): ImportLogInterface
+    {
+        return $this->importLogRepository->getByMagentoOrderId($magentoOrderId);
+    }
+
     /**
      * Create import log entry
      *
