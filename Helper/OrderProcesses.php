@@ -3,14 +3,19 @@
 namespace Shopthru\Connector\Helper;
 
 use Magento\CatalogInventory\Api\StockRegistryInterface;
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Model\Group;
 use Magento\Framework\App\Helper\AbstractHelper;
 use Magento\Framework\App\Helper\Context;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
+use Magento\Sales\Model\Order\Email\Sender\OrderSender;
+use RectorPrefix202411\Illuminate\Contracts\Queue\EntityNotFoundException;
 use Shopthru\Connector\Api\Data\ImportLogInterface;
 use Magento\Framework\DB\TransactionFactory;
 use Shopthru\Connector\Model\EventType;
+use Shopthru\Connector\Model\Config as ModuleConfig;
 
 class OrderProcesses extends AbstractHelper
 {
@@ -19,8 +24,20 @@ class OrderProcesses extends AbstractHelper
         private readonly TransactionFactory $transactionFactory,
         private readonly OrderRepositoryInterface $orderRepository,
         private readonly StockRegistryInterface $stockRegistry,
+        private readonly OrderSender $orderSender,
+        private readonly ModuleConfig $moduleConfig,
+        private readonly CustomerRepositoryInterface $customerRepository,
     ) {
         parent::__construct($context);
+    }
+
+    /**
+     * @param OrderInterface $order
+     * @return bool
+     */
+    public function sendOrderConfirmationEmail(OrderInterface $order): bool
+    {
+        return $this->orderSender->send($order);
     }
 
     /**
@@ -35,6 +52,37 @@ class OrderProcesses extends AbstractHelper
             comment:$comment,
             isVisibleOnFront:$isVisibleOnFront
         );
+        $this->orderRepository->save($order);
+
+        return $order;
+    }
+
+    public function addMultipleCommentsToOrder(OrderInterface $order, array $comments, bool $isVisibleOnFront = false): OrderInterface
+    {
+        foreach ($comments as $comment) {
+            $order->addCommentToStatusHistory(
+                comment:$comment,
+                isVisibleOnFront:$isVisibleOnFront
+            );
+        }
+        $this->orderRepository->save($order);
+
+        return $order;
+    }
+
+    public function linkCustomerToOrderIfExists(OrderInterface $order, string $customerEmail): OrderInterface
+    {
+        try {
+            $customer = $this->customerRepository->get($customerEmail);
+            $order->setCustomerId($customer->getId());
+            $order->setCustomerIsGuest(0);
+            $order->setCustomerGroupId($customer->getGroupId());
+
+        } catch (EntityNotFoundException $e) {
+            $order->setCustomerIsGuest(1);
+            $order->setCustomerGroupId(Group::NOT_LOGGED_IN_ID);
+        }
+
         $this->orderRepository->save($order);
 
         return $order;

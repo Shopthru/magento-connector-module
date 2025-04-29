@@ -52,6 +52,56 @@ class ImportOrderManagement implements ImportOrderManagementInterface
     ) {
     }
 
+    public function cancelOrder($shopthruOrderId, $orderData)
+    {
+        $result = [];
+        $this->importOrderContext->setIsShopthruImport(true);
+        $logEntry = $this->loggingHelper->getLogByShopthruOrderId($shopthruOrderId);
+
+        $this->loggingHelper->addEventLog(
+            $logEntry,
+            EventType::ORDER_CANCELLATION_STARTED,
+            'Started order cancellation process'
+        );
+
+        $this->directOrderCreator->cancelOrder($shopthruOrderId, $orderData, $logEntry);
+        $this->loggingHelper->updateImportLog(
+            $logEntry,
+            ImportLogInterface::STATUS_CANCELLED,
+            [],
+            null,
+        );
+        return $result;
+    }
+
+    public function completeOrder($shopthruOrderId, $confirmOrderData)
+    {
+        $result = [];
+        $this->importOrderContext->setIsShopthruImport(true);
+        $logEntry = $this->loggingHelper->getLogByShopthruOrderId($shopthruOrderId);
+
+        $this->loggingHelper->addEventLog(
+            $logEntry,
+            EventType::ORDER_COMPLETION_STARTED,
+            'Started order completion process'
+        );
+
+        $this->directOrderCreator->confirmOrder($shopthruOrderId, $confirmOrderData, $logEntry);
+        $this->loggingHelper->addEventLog(
+            $logEntry,
+            EventType::ORDER_COMPLETION_COMPLETED,
+            'Order completion process completed'
+        );
+        $this->loggingHelper->updateImportLog(
+            $logEntry,
+            ImportLogInterface::STATUS_SUCCESS,
+            [],
+            null,
+        );
+
+        return $result;
+    }
+
     /**
      * @inheritDoc
      */
@@ -130,31 +180,6 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 $order = $this->directOrderCreator->create($orderData, $logEntry);
 //                $order = $this->placeQuoteOrder->create($orderData, $logEntry);
 
-                // Send email if enabled
-                if ($this->moduleConfig->isTriggerEmailEnabled()) {
-                    $this->loggingHelper->addEventLog(
-                        $logEntry,
-                        EventType::EMAIL_SENDING,
-                        'Sending order confirmation email',
-                        ['order_id' => $order->getIncrementId()]
-                    );
-
-                    $this->orderSender->send($order);
-
-                    $this->loggingHelper->addEventLog(
-                        $logEntry,
-                        EventType::EMAIL_SENT,
-                        'Order confirmation email sent',
-                        ['order_id' => $order->getIncrementId()]
-                    );
-                } else {
-                    $this->loggingHelper->addEventLog(
-                        $logEntry,
-                        EventType::EMAIL_SKIPPED,
-                        'Order confirmation email skipped due to configuration'
-                    );
-                }
-
                 // Log completion event
                 $this->loggingHelper->addEventLog(
                     $logEntry,
@@ -166,7 +191,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                 // Update log status to success
                 $this->loggingHelper->updateImportLog(
                     $logEntry,
-                    ImportLogInterface::STATUS_SUCCESS,
+                    ImportLogInterface::STATUS_PENDING_PAYMENT,
                     ['order_info' => $this->getOrderSummary($order)],
                     null,
                     $order->getId()
@@ -235,8 +260,8 @@ class ImportOrderManagement implements ImportOrderManagementInterface
      */
     private function validateStock(OrderImportInterface $orderData, ImportLogInterface $logEntry): bool
     {
-        // If allow zero stock is enabled, skip validation
-        if ($this->moduleConfig->isAllowZeroStockEnabled()) {
+        // If validate stock is enabled, skip validation
+        if (!$this->moduleConfig->isValidateStockEnabled()) {
             $this->loggingHelper->addEventLog(
                 $logEntry,
                 EventType::STOCK_VALIDATION_SKIPPED,

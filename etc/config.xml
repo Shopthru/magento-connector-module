@@ -5,11 +5,15 @@
             <general>
                 <trigger_email>1</trigger_email>
                 <decrement_stock>1</decrement_stock>
-                <allow_zero_stock>0</allow_zero_stock>
+                <validate_available_stock>0</validate_available_stock>
                 <link_customer>0</link_customer>
                 <auto_invoice>1</auto_invoice>
                 <order_status>processing</order_status>
+                <pending_order_status>pending</pending_order_status>
+                <order_cancelled_action>update_status</order_cancelled_action>
+                <cancelled_order_status>canceled</cancelled_order_status>
                 <test_order_sku>24-MB01</test_order_sku>
+                <admin_api_intercept_enabled>0</admin_api_intercept_enabled>
             </general>
             <payment>
                 <active>1</active>

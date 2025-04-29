@@ -19,9 +19,9 @@ use Magento\Sales\Api\Data\OrderPaymentInterface;
 use Magento\Sales\Api\Data\OrderPaymentInterfaceFactory;
 use Magento\Sales\Model\Order\Item;
 use Magento\Sales\Api\Data\OrderItemInterfaceFactory;
-use Magento\Sales\Model\Order\Email\Sender\OrderSender;
 use Magento\Framework\DB\TransactionFactory;
 
+use Shopthru\Connector\Api\Data\ConfirmOrderInterface;
 use Shopthru\Connector\Api\Data\ImportLogInterface;
 use Shopthru\Connector\Api\Data\OrderImportInterface;
 use Shopthru\Connector\Helper\Logging as LoggingHelper;
@@ -29,6 +29,7 @@ use Shopthru\Connector\Helper\OrderProcesses;
 use Shopthru\Connector\Model\Config as ModuleConfig;
 use Shopthru\Connector\Model\EventType;
 use Shopthru\Connector\Model\ImportProcessors\DirectOrderCreator\DefaultData;
+use \Shopthru\Connector\Model\Payment\Method\Shopthru as ShopthruPayment;
 
 class DirectOrderCreator
 {
@@ -40,7 +41,6 @@ class DirectOrderCreator
      * @param LoggingHelper $loggingHelper
      * @param OrderProcesses $orderProcessesHelper
      * @param ModuleConfig $moduleConfig
-     * @param OrderSender $orderSender
      * @param OrderAddressInterfaceFactory $orderAddressFactory
      * @param OrderPaymentInterfaceFactory $orderPaymentFactory
      * @param OrderInterfaceFactory $orderFactory
@@ -56,7 +56,6 @@ class DirectOrderCreator
         private readonly LoggingHelper $loggingHelper,
         private readonly OrderProcesses $orderProcessesHelper,
         private readonly ModuleConfig $moduleConfig,
-        private readonly OrderSender $orderSender,
         private readonly OrderAddressInterfaceFactory $orderAddressFactory,
         private readonly OrderPaymentInterfaceFactory $orderPaymentFactory,
         private readonly OrderInterfaceFactory $orderFactory,
@@ -81,8 +80,9 @@ class DirectOrderCreator
         $this->applyDefaultOrderData($order, $orderData);
 
         // Set basic order information
-        $order->setState(Order::STATE_PROCESSING);
-        $order->setStatus($this->moduleConfig->getOrderStatus() ?: 'processing');
+        $order->setState(Order::STATE_PENDING_PAYMENT);
+        $order->setStatus('pending_payment');
+
         $order->setIsVirtual((bool) $orderData->getIsVirtual() ?: 0);
 
         // Set currency code
@@ -149,7 +149,6 @@ class DirectOrderCreator
 
     private function setOrderTotals(OrderInterface $order, OrderImportInterface $orderData)
     {
-
         // Set order totals
         $subTotal = (float)$orderData->getSubTotal();
         $discountAmount = (float)$orderData->getDiscountTotal();
@@ -176,8 +175,90 @@ class DirectOrderCreator
 
         $order->setGrandTotal($grandTotal);
         $order->setBaseGrandTotal($grandTotal);
-        $order->setTotalPaid($grandTotal);
-        $order->setBaseTotalPaid($grandTotal);
+        $order->setTotalPaid(0);
+        $order->setBaseTotalPaid(0);
+    }
+
+    public function confirmOrder($shopthruOrderId, ConfirmOrderInterface $confirmOrderData, ImportLogInterface $importLog = null)
+    {
+        if (!$importLog) {
+            $importLog = $this->loggingHelper->getLogByShopthruOrderId($shopthruOrderId);
+        }
+        $magentoOrderId = $importLog->getMagentoOrderId();
+        $order = $this->orderRepository->get($magentoOrderId);
+
+        // Create invoice if auto-invoice is enabled
+        if ($this->moduleConfig->isAutoInvoiceEnabled()) {
+            $this->createInvoice($order, $importLog);
+        } else {
+            $order->setState(Order::STATE_PROCESSING);
+            $order->setStatus($this->moduleConfig->getOrderStatus() ?: Order::STATE_PROCESSING);
+            $order->setIsInProcess(true);
+            $order->setTotalPaid($order->getGrandTotal());
+            $order->setBaseTotalPaid($order->getBaseGrandTotal());
+            $order->save();
+        }
+
+        $payment = $order->getPayment();
+        $transactionId = $confirmOrderData->getPaymentData()['transaction_id'] ?? '';
+        $payment->setTransactionId($transactionId);
+        $payment->setLastTransId($transactionId);
+        $payment->setTransactionAdditionalInfo('transaction_id', $transactionId);
+        $payment->save();
+
+        $this->sendOrderEmailifEnabled($order, $importLog);
+
+        // Decrement stock if enabled
+        if ($this->moduleConfig->isDecrementStockEnabled()) {
+            $this->decrementStock($order, $importLog);
+        }
+
+        return $order;
+    }
+
+    public function cancelOrder($shopthruOrderId, $orderData, ImportLogInterface $importLog = null)
+    {
+        if (!$importLog) {
+            $importLog = $this->loggingHelper->getLogByShopthruOrderId($shopthruOrderId);
+        }
+        $magentoOrderId = $importLog->getMagentoOrderId();
+        $order = $this->orderRepository->get($magentoOrderId);
+
+        switch ($this->moduleConfig->getCancelledOrderAction()) {
+            case ModuleConfig\Source\CancelledOrderAction::UPDATE_STATUS:
+                return $this->cancelOrderStatusAction($order, $importLog);
+            case ModuleConfig\Source\CancelledOrderAction::DELETE:
+                return $this->cancelOrderDeleteAction($order, $importLog);
+            default:
+                throw new \Exception('Invalid cancelled order action');
+        }
+    }
+
+    private function cancelOrderStatusAction(OrderInterface $order, ImportLogInterface $logEntry)
+    {
+        $order->setState(Order::STATE_CANCELED);
+        $order->setStatus($this->moduleConfig->getCancelledOrderStatus() ?: Order::STATE_CANCELED);
+        // add note to order
+        $order->addStatusHistoryComment('Order cancelled by Shopthru');
+        $this->orderRepository->save($order);
+        $this->loggingHelper->addEventLog(
+            $logEntry->getImportId(),
+            EventType::ORDER_STATUS,
+            'Order cancelled.'
+        );
+        return true;
+    }
+
+    private function cancelOrderDeleteAction(OrderInterface $order, ImportLogInterface $logEntry)
+    {
+        $this->orderRepository->delete($order);
+        $this->loggingHelper->addEventLog(
+            $logEntry->getImportId(),
+            EventType::ORDER_DELETED,
+            'Order deleted.'
+        );
+
+        return true;
     }
 
     /**
@@ -193,7 +274,7 @@ class DirectOrderCreator
         ImportLogInterface $logEntry
     ): Order {
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::ORDER_CREATING_DIRECT,
             'Creating order directly without quote'
         );
@@ -213,21 +294,21 @@ class DirectOrderCreator
         $this->orderRepository->save($order);
 
         $this->loggingHelper->addEventLog(
-            $logEntry->getImportId(),
+            $logEntry,
             EventType::ORDER_CREATED_DIRECT,
-            'Order created directly',
+            'Order created',
             ['order_id' => $order->getIncrementId()]
         );
 
-        // Create invoice if auto-invoice is enabled
-        if ($this->moduleConfig->isAutoInvoiceEnabled()) {
-            $this->createInvoice($order, $logEntry);
-        }
-
-        // Decrement stock if enabled
-        if ($this->moduleConfig->isDecrementStockEnabled()) {
-            $this->decrementStock($order, $logEntry);
-        }
+//        // Create invoice if auto-invoice is enabled
+//        if ($this->moduleConfig->isAutoInvoiceEnabled()) {
+//            $this->createInvoice($order, $logEntry);
+//        }
+//
+//        // Decrement stock if enabled
+//        if ($this->moduleConfig->isDecrementStockEnabled()) {
+//            $this->decrementStock($order, $logEntry);
+//        }
 
         return $order;
     }
@@ -289,13 +370,13 @@ class DirectOrderCreator
      * @param ImportLogInterface $logEntry
      */
     private function setOrderPayment(
-        Order $order,
+        OrderInterface $order,
         OrderImportInterface $orderData,
         ImportLogInterface $logEntry
     ): void {
         $payment = $this->orderPaymentFactory->create();
         $payment->setOrder($order);
-        $payment->setMethod('shopthru');
+        $payment->setMethod(ShopthruPayment::CODE);
 
         // Set transaction ID if available
         if ($orderData->getPaymentTransactionId()) {
@@ -304,8 +385,8 @@ class DirectOrderCreator
         }
 
         // Mark as captured
-        $payment->setAmountPaid($orderData->getTotalPaid());
-        $payment->setBaseAmountPaid($orderData->getTotalPaid());
+//        $payment->setAmountPaid($orderData->getTotalPaid());
+//        $payment->setBaseAmountPaid($orderData->getTotalPaid());
         $payment->setAmountOrdered($orderData->getTotalPaid());
         $payment->setBaseAmountOrdered($orderData->getTotalPaid());
 
@@ -320,7 +401,7 @@ class DirectOrderCreator
      * @param ImportLogInterface $logEntry
      */
     private function addOrderItems(
-        Order $order,
+        OrderInterface $order,
         OrderImportInterface $orderData,
         ImportLogInterface $logEntry
     ): void {
@@ -374,6 +455,14 @@ class DirectOrderCreator
                     $orderItem->setBaseDiscountAmount($discountAmount);
                 }
 
+                $orderItem->setProductOptions([
+                    'info_buyRequest' => [
+                        'qty' => $qty,
+                        'product' => $product->getId(),
+                        'item' => $product->getId()
+                    ]
+                ]);
+
                 // Add item to order
                 $order->addItem($orderItem);
 
@@ -424,7 +513,7 @@ class DirectOrderCreator
         }
     }
 
-    private function applyDefaultOrderData(Order $order, OrderImportInterface $orderData): Order
+    private function applyDefaultOrderData(OrderInterface $order, OrderImportInterface $orderData): Order
     {
         $defaultOrderData = $this->defaultData->getDefaultOrderData();
         $appliedDefaults = [];
@@ -557,7 +646,7 @@ class DirectOrderCreator
      * @param Order $order
      * @param ImportLogInterface $logEntry
      */
-    private function decrementStock(Order $order, ImportLogInterface $logEntry): void
+    private function decrementStock(OrderInterface $order, ImportLogInterface $logEntry): void
     {
         $this->loggingHelper->addEventLog(
             $logEntry->getImportId(),
@@ -593,7 +682,7 @@ class DirectOrderCreator
      * @param ImportLogInterface $logEntry
      * @return bool
      */
-    public function sendOrderEmail(Order $order, ImportLogInterface $logEntry): bool
+    public function sendOrderEmailIfEnabled(OrderInterface $order, ImportLogInterface $logEntry): bool
     {
         // Check if email sending is enabled in the configuration
         if (!$this->moduleConfig->isTriggerEmailEnabled()) {
@@ -615,7 +704,7 @@ class DirectOrderCreator
             );
 
             // Send the order email
-            $emailSent = $this->orderSender->send($order);
+            $emailSent = $this->orderProcessesHelper->sendOrderConfirmationEmail($order);
 
             if ($emailSent) {
                 $this->loggingHelper->addEventLog(

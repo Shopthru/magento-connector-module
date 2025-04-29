@@ -5,7 +5,7 @@
             <label>Shopthru</label>
         </tab>
         <section id="shopthru" translate="label" type="text" sortOrder="300" showInDefault="1" showInWebsite="1" showInStore="1">
-            <label>Shopthru Settings</label>
+            <label>Shopthru Connector Settings</label>
             <tab>shopthru</tab>
             <resource>Shopthru_Connector::config</resource>
             <group id="general" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
@@ -20,9 +20,9 @@
                     <comment>Decrement product stock when order is imported from Shopthru</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="allow_zero_stock" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Allow order if stock is at 0</label>
-                    <comment>Allow order to be created even if the product stock is 0</comment>
+                <field id="validate_available_stock" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Validate stock is available</label>
+                    <comment>Validate stock is available when order is imported from Shopthru</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
                 <field id="link_customer" translate="label comment" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
@@ -35,14 +35,37 @@
                     <comment>Automatically create invoice when order is imported from Shopthru</comment>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="order_status" translate="label comment" type="select" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Order status for new orders</label>
-                    <comment>Default status for newly imported orders from Shopthru</comment>
+                <field id="pending_order_status" translate="label comment" type="select" sortOrder="55" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Order status for new (pending payment) orders</label>
+                    <comment>Status for newly imported orders from Shopthru before payment is confirmed</comment>
                     <source_model>Magento\Sales\Model\Config\Source\Order\Status</source_model>
+                </field>
+                <field id="order_status" translate="label comment" type="select" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Order status for processed orders</label>
+                    <comment>Status for imported orders once payment is confirmed</comment>
+                    <source_model>Magento\Sales\Model\Config\Source\Order\Status</source_model>
+                </field>
+                <field id="cancelled_order_action" translate="label comment" type="select" sortOrder="62" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Action for cancelled orders</label>
+                    <comment>Action to take when payment fails</comment>
+                    <source_model>Shopthru\Connector\Model\Config\Source\CancelledOrderAction</source_model>
+                </field>
+                <field id="cancelled_order_status" translate="label comment" type="select" sortOrder="65" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Order status for cancelled orders</label>
+                    <comment>Status for orders if payment fails (if "Update order status" is selected as action)</comment>
+                    <source_model>Magento\Sales\Model\Config\Source\Order\Status</source_model>
+                    <depends>
+                        <field id="cancelled_order_action">update_status</field>
+                    </depends>
                 </field>
                 <field id="test_order_sku" translate="label comment" type="text" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Test Order SKU</label>
                     <comment>SKU of a product to use for testing order imports</comment>
+                </field>
+                <field id="admin_api_intercept_enabled" translate="label comment" type="select" sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Intercept admin API calls</label>
+                    <comment>Allow Shopthru to intercept admin API calls to run pre-checks, validation and triggering stock decrements and customer emails</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
             </group>
             <group id="payment" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
