@@ -24,6 +24,8 @@ interface ImportLogInterface
      * Status Constants
      */
     public const STATUS_PENDING = 'pending';
+    public const STATUS_PENDING_PAYMENT = 'pending_payment';
+    public const STATUS_CANCELLED = 'cancelled';
     public const STATUS_SUCCESS = 'success';
     public const STATUS_FAILED = 'failed';
 
