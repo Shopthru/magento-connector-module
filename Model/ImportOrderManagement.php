@@ -6,24 +6,24 @@ namespace Shopthru\Connector\Model;
 
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\CatalogInventory\Api\StockRegistryInterface;
-use Magento\CatalogInventory\Api\StockStateInterface;
-use Magento\Customer\Api\AddressRepositoryInterface;
 use Magento\Customer\Api\CustomerRepositoryInterface;
-use Magento\Customer\Api\Data\AddressInterfaceFactory;
-use Magento\Customer\Api\Data\CustomerInterfaceFactory;
-use Magento\Customer\Api\Data\RegionInterfaceFactory;
-use Magento\Customer\Model\CustomerFactory;
 use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\Framework\Exception\InputException;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Model\Order\Email\Sender\OrderSender;
+use Magento\Framework\Webapi\Rest\Request as RestRequest;
+
+use Shopthru\Connector\Api\Data\ConfirmOrderRequestInterface;
 use Shopthru\Connector\Api\Data\ImportLogInterface;
 use Shopthru\Connector\Api\Data\OrderImportInterface;
+use Shopthru\Connector\Api\Data\OrderImportResponseInterface;
+use Shopthru\Connector\Api\Data\OrderImportResponseInterfaceFactory;
 use Shopthru\Connector\Api\ImportOrderManagementInterface;
 use Shopthru\Connector\Helper\Logging;
 use Shopthru\Connector\Model\Config as ModuleConfig;
 use Shopthru\Connector\Model\ImportProcessors\DirectOrderCreator;
-use Shopthru\Connector\Model\ImportProcessors\PlaceQuoteOrder;
 
 class ImportOrderManagement implements ImportOrderManagementInterface
 {
@@ -35,7 +35,6 @@ class ImportOrderManagement implements ImportOrderManagementInterface
      * @param OrderSender $orderSender
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param StockRegistryInterface $stockRegistry
-     * @param PlaceQuoteOrder $placeQuoteOrder
      * @param DirectOrderCreator $directOrderCreator
      */
     public function __construct(
@@ -43,18 +42,17 @@ class ImportOrderManagement implements ImportOrderManagementInterface
         private readonly CustomerRepositoryInterface $customerRepository,
         private readonly Logging $loggingHelper,
         private readonly ModuleConfig $moduleConfig,
-        private readonly OrderSender $orderSender,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
         private readonly StockRegistryInterface $stockRegistry,
-        private readonly PlaceQuoteOrder $placeQuoteOrder,
         private readonly DirectOrderCreator $directOrderCreator,
-        private readonly ImportOrderContext $importOrderContext
+        private readonly ImportOrderContext $importOrderContext,
+        private readonly OrderImportResponseInterfaceFactory $orderImportResponseFactory,
+        private readonly RestRequest $restRequest,
     ) {
     }
 
-    public function cancelOrder($shopthruOrderId, $orderData)
+    public function cancelOrder($shopthruOrderId, $orderData): OrderImportResponseInterface
     {
-        $result = [];
         $this->importOrderContext->setIsShopthruImport(true);
         $logEntry = $this->loggingHelper->getLogByShopthruOrderId($shopthruOrderId);
 
@@ -64,6 +62,25 @@ class ImportOrderManagement implements ImportOrderManagementInterface
             'Started order cancellation process'
         );
 
+        $params = $this->restRequest->getParams();
+        $ignoreStatus = $params['force'] ?? false;
+
+        if (!$ignoreStatus && $logEntry->getStatus() != ImportLogInterface::STATUS_PENDING_PAYMENT) {
+            $this->loggingHelper->addEventLog(
+                $logEntry,
+                EventType::ORDER_CANCELLATION_ERROR,
+                'Order cannot be cancelled as it is not in pending payment status',
+                [
+                    'status' => $logEntry->getStatus(),
+                    'magento_order_id' => $logEntry->getMagentoOrderId()
+                ]
+            );
+            throw new InputException(__('Order cannot be confirmed as it is not in pending payment status', [
+                'status' => $logEntry->getStatus(),
+                'magento_order_id' => $logEntry->getMagentoOrderId()
+            ]));
+        }
+
         $this->directOrderCreator->cancelOrder($shopthruOrderId, $orderData, $logEntry);
         $this->loggingHelper->updateImportLog(
             $logEntry,
@@ -71,14 +88,39 @@ class ImportOrderManagement implements ImportOrderManagementInterface
             [],
             null,
         );
-        return $result;
+
+        $success = $logEntry->getStatus() === ImportLogInterface::STATUS_CANCELLED;
+
+        return $this->buildImportResponse(
+            OrderImportResponseInterface::IMPORT_ACTION_CANCEL,
+            $success,
+            $logEntry
+        );
     }
 
-    public function completeOrder($shopthruOrderId, $confirmOrderData)
+    public function completeOrder($shopthruOrderId, ConfirmOrderRequestInterface $confirmOrderData): OrderImportResponseInterface
     {
-        $result = [];
         $this->importOrderContext->setIsShopthruImport(true);
         $logEntry = $this->loggingHelper->getLogByShopthruOrderId($shopthruOrderId);
+
+        $params = $this->restRequest->getParams();
+        $ignoreStatus = $params['force'] ?? false;
+
+        if (!$ignoreStatus && $logEntry->getStatus() != ImportLogInterface::STATUS_PENDING_PAYMENT) {
+            $this->loggingHelper->addEventLog(
+                $logEntry,
+                EventType::ORDER_COMPLETION_ERROR,
+                'Order cannot be completed as it is not in pending payment status',
+                [
+                    'status' => $logEntry->getStatus(),
+                    'magento_order_id' => $logEntry->getMagentoOrderId()
+                ]
+            );
+            throw new InputException(__('Order cannot be confirmed as it is not in pending payment status', [
+                'status' => $logEntry->getStatus(),
+                'magento_order_id' => $logEntry->getMagentoOrderId()
+            ]));
+        }
 
         $this->loggingHelper->addEventLog(
             $logEntry,
@@ -99,13 +141,174 @@ class ImportOrderManagement implements ImportOrderManagementInterface
             null,
         );
 
-        return $result;
+        $success = $logEntry->getStatus() === ImportLogInterface::STATUS_SUCCESS;
+
+        return $this->buildImportResponse(
+            OrderImportResponseInterface::IMPORT_ACTION_CONFIRM,
+            $success,
+            $logEntry
+        );
+    }
+
+    public function importOrderProcess(OrderImportInterface $orderData)
+    {
+        $shopthruOrderId = $orderData->getOrderId();
+        $publisher = $orderData->getPublisher();
+        $publisherRef = isset($publisher['ref']) ? $publisher['ref'] : null;
+        $publisherName = isset($publisher['name']) ? $publisher['name'] : null;
+
+        // Create initial log entry
+        $logEntry = $this->loggingHelper->createImportLog(
+            $shopthruOrderId,
+            $publisherRef,
+            $publisherName,
+            ImportLogInterface::STATUS_PENDING,
+            $orderData->getData(), // Store original Shopthru data
+        );
+
+        // Log initial event
+        $this->loggingHelper->addEventLog(
+            $logEntry,
+            EventType::IMPORT_STARTED,
+            'Started processing Shopthru order: ' . $shopthruOrderId
+        );
+
+        try {
+            // Check if order with this Shopthru ID already exists
+            $existingOrderId = $this->checkExistingOrder($shopthruOrderId);
+            if ($existingOrderId) {
+                $this->loggingHelper->addEventLog(
+                    $logEntry,
+                    EventType::IMPORT_DUPLICATE,
+                    'Order already exists in Magento',
+                    ['magento_order_id' => $existingOrderId]
+                );
+
+                $this->loggingHelper->updateImportLog(
+                    $logEntry,
+                    ImportLogInterface::STATUS_FAILED,
+                    null,
+                    "Order with Shopthru ID {$shopthruOrderId} already exists in Magento (Order #{$existingOrderId})"
+                );
+                throw new InputException(__("Order with Shopthru ID {$shopthruOrderId} already exists in Magento (Order #{$existingOrderId})"));
+            }
+
+            // Process the order
+            $storeId = $orderData->getExtStoreId() ? (int)$orderData->getExtStoreId() : null;
+            $store = $this->loggingHelper->getStore($storeId);
+
+            // Check stock levels if needed
+            if (!$this->validateStock($orderData, $logEntry)) {
+                $this->loggingHelper->addEventLog(
+                    $logEntry,
+                    EventType::STOCK_INSUFFICIENT,
+                    'Insufficient stock for one or more products'
+                );
+
+                $this->loggingHelper->updateImportLog(
+                    $logEntry,
+                    ImportLogInterface::STATUS_FAILED,
+                    null,
+                    "Insufficient stock for one or more products in the order"
+                );
+            }
+
+            $order = $this->directOrderCreator->create($orderData, $logEntry);
+            $logEntry->setMagentoOrder($order);
+
+            // Log completion event
+            $this->loggingHelper->addEventLog(
+                $logEntry,
+                EventType::IMPORT_COMPLETED,
+                'Order import completed successfully',
+                ['order_id' => $order->getIncrementId()]
+            );
+
+            // Update log status to success
+            $this->loggingHelper->updateImportLog(
+                $logEntry,
+                ImportLogInterface::STATUS_PENDING_PAYMENT,
+                ['order_info' => $this->getOrderSummary($order)],
+                null,
+                $order->getId()
+            );
+
+            $result[] = $logEntry;
+        } catch (InputException $e) {
+            $this->loggingHelper->addEventLog(
+                $logEntry,
+                EventType::IMPORT_ERROR,
+                'Error importing order: ' . $e->getMessage(),
+                ['trace' => $e->getTraceAsString()]
+            );
+            throw $e;
+        } catch (\Exception $e) {
+            // Log the error
+            $this->loggingHelper->addEventLog(
+                $logEntry,
+                EventType::IMPORT_ERROR,
+                'Error importing order: ' . $e->getMessage(),
+                ['trace' => $e->getTraceAsString()]
+            );
+
+            // Log the error and update the log entry
+            $this->loggingHelper->updateImportLog(
+                $logEntry,
+                ImportLogInterface::STATUS_FAILED,
+                null,
+                $e->getMessage()
+            );
+            return $logEntry;
+        }
+
+        return $logEntry;
     }
 
     /**
      * @inheritDoc
      */
-    public function importOrders(array $orders): array
+    public function importOrder(OrderImportInterface $orderData): OrderImportResponseInterface
+    {
+        $this->importOrderContext->setIsShopthruImport(true);
+        $logEntry = $this->importOrderProcess($orderData);
+
+        $success = $logEntry->getStatus() === ImportLogInterface::STATUS_PENDING_PAYMENT;
+        return $this->buildImportResponse(
+            OrderImportResponseInterface::IMPORT_ACTION_CREATE,
+            $success,
+            $logEntry
+        );
+    }
+
+    private function buildImportResponse(string $action, bool $success, ImportLogInterface $logEntry, OrderInterface $order = null): OrderImportResponseInterface
+    {
+        if (!$order && $logEntry->getMagentoOrder(false)) {
+            $order = $logEntry->getMagentoOrder(false);
+        }
+
+        $orderResponse = $this->orderImportResponseFactory->create();
+        $orderResponse->setImportAction($action);
+        $orderResponse->setImportActionSuccess($success);
+        $orderResponse->setShopthruOrderId($logEntry->getShopthruOrderId());
+        if ($logEntry->getMagentoOrderId()) {
+            $orderResponse->setMagentoOrderId($logEntry->getMagentoOrderId());
+        }
+        $orderResponse->setImportStatus($logEntry->getStatus());
+        $orderResponse->setImportLogId($logEntry->getImportId());
+        if ($logEntry->getFailedReason()) {
+            $orderResponse->setErrorMessage($logEntry->getFailedReason());
+        }
+        if ($order) {
+            $orderResponse->setMagentoOrderStatus($order->getStatus());
+        }
+
+        return $orderResponse;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function importMultipleOrders(array $orders): array
     {
         $result = [];
 
@@ -113,113 +316,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
         $this->importOrderContext->setIsShopthruImport(true);
 
         foreach ($orders as $orderData) {
-            $shopthruOrderId = $orderData->getOrderId();
-            $publisher = $orderData->getPublisher();
-            $publisherRef = isset($publisher['ref']) ? $publisher['ref'] : null;
-            $publisherName = isset($publisher['name']) ? $publisher['name'] : null;
-
-            // Create initial log entry
-            $logEntry = $this->loggingHelper->createImportLog(
-                $shopthruOrderId,
-                $publisherRef,
-                $publisherName,
-                ImportLogInterface::STATUS_PENDING,
-                $orderData->getData(), // Store original Shopthru data
-            );
-
-            // Log initial event
-            $this->loggingHelper->addEventLog(
-                $logEntry,
-                EventType::IMPORT_STARTED,
-                'Started processing Shopthru order: ' . $shopthruOrderId
-            );
-
-            try {
-                // Check if order with this Shopthru ID already exists
-                $existingOrderId = $this->checkExistingOrder($shopthruOrderId);
-                if ($existingOrderId) {
-                    $this->loggingHelper->addEventLog(
-                        $logEntry,
-                        EventType::IMPORT_DUPLICATE,
-                        'Order already exists in Magento',
-                        ['magento_order_id' => $existingOrderId]
-                    );
-
-                    $this->loggingHelper->updateImportLog(
-                        $logEntry,
-                        ImportLogInterface::STATUS_FAILED,
-                        null,
-                        "Order with Shopthru ID {$shopthruOrderId} already exists in Magento (Order #{$existingOrderId})"
-                    );
-                    $result[] = $logEntry;
-                    continue;
-                }
-
-                // Process the order
-                $storeId = $orderData->getExtStoreId() ? (int)$orderData->getExtStoreId() : null;
-                $store = $this->loggingHelper->getStore($storeId);
-
-                // Check stock levels if needed
-                if (!$this->validateStock($orderData, $logEntry)) {
-                    $this->loggingHelper->addEventLog(
-                        $logEntry,
-                        EventType::STOCK_INSUFFICIENT,
-                        'Insufficient stock for one or more products'
-                    );
-
-                    $this->loggingHelper->updateImportLog(
-                        $logEntry,
-                        ImportLogInterface::STATUS_FAILED,
-                        null,
-                        "Insufficient stock for one or more products in the order"
-                    );
-                    $result[] = $logEntry;
-                    continue;
-                }
-
-                $order = $this->directOrderCreator->create($orderData, $logEntry);
-//                $order = $this->placeQuoteOrder->create($orderData, $logEntry);
-
-                // Log completion event
-                $this->loggingHelper->addEventLog(
-                    $logEntry,
-                    EventType::IMPORT_COMPLETED,
-                    'Order import completed successfully',
-                    ['order_id' => $order->getIncrementId()]
-                );
-
-                // Update log status to success
-                $this->loggingHelper->updateImportLog(
-                    $logEntry,
-                    ImportLogInterface::STATUS_PENDING_PAYMENT,
-                    ['order_info' => $this->getOrderSummary($order)],
-                    null,
-                    $order->getId()
-                );
-
-                $result[] = $logEntry;
-            } catch (\Exception $e) {
-                // Log the error
-                $this->loggingHelper->addEventLog(
-                    $logEntry,
-                    EventType::IMPORT_ERROR,
-                    'Error importing order: ' . $e->getMessage(),
-                    ['trace' => $e->getTraceAsString()]
-                );
-
-                // Log the error and update the log entry
-                $this->loggingHelper->logError(
-                    'Error importing order: ' . $e->getMessage(),
-                    ['trace' => $e->getTraceAsString()]
-                );
-                $this->loggingHelper->updateImportLog(
-                    $logEntry,
-                    ImportLogInterface::STATUS_FAILED,
-                    null,
-                    $e->getMessage()
-                );
-                $result[] = $logEntry;
-            }
+            $this->importOrderProcess($orderData);
         }
 
         return $result;
@@ -235,7 +332,6 @@ class ImportOrderManagement implements ImportOrderManagementInterface
     {
         $searchCriteria = $this->searchCriteriaBuilder
             ->addFilter('shopthru_order_id', $shopthruOrderId)
-            ->addFilter('status', ImportLogInterface::STATUS_SUCCESS)
             ->create();
 
         $logEntries = $this->loggingHelper->getImportLogRepository()->getList($searchCriteria);
@@ -309,7 +405,6 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                     'sku' => $sku,
                     'error' => 'Product not found'
                 ];
-                $this->loggingHelper->logError('Product not found: ' . $sku);
                 continue;
             } catch (\Exception $e) {
                 $this->loggingHelper->addEventLog(
@@ -323,7 +418,6 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                     'sku' => $sku,
                     'error' => $e->getMessage()
                 ];
-                $this->loggingHelper->logError('Error checking stock: ' . $e->getMessage());
                 continue;
             }
         }
@@ -344,71 +438,6 @@ class ImportOrderManagement implements ImportOrderManagementInterface
         }
 
         return $allItemsInStock;
-    }
-
-    /**
-     * Prepare customer data
-     *
-     * @param OrderImportInterface $orderData
-     * @param mixed $store
-     * @param ImportLogInterface $logEntry
-     * @return int|null Customer ID if customer should be linked, otherwise null
-     */
-    private function prepareCustomer(
-        OrderImportInterface $orderData,
-        $store,
-        ImportLogInterface $logEntry
-    ): ?int {
-        $customerData = $orderData->getCustomer();
-        $customerEmail = $customerData['email'];
-        $customerId = null;
-
-        $this->loggingHelper->addEventLog(
-            $logEntry,
-            EventType::CUSTOMER_PREPARING,
-            'Preparing customer data',
-            ['email' => $customerEmail]
-        );
-
-        // If configured to link to existing customer, try to find one with the same email
-        if ($this->moduleConfig->isLinkCustomerEnabled()) {
-            try {
-                $customer = $this->customerRepository->get($customerEmail);
-                $customerId = $customer->getId();
-
-                $this->loggingHelper->addEventLog(
-                    $logEntry,
-                    EventType::CUSTOMER_FOUND,
-                    'Found existing customer',
-                    ['customer_id' => $customerId]
-                );
-            } catch (NoSuchEntityException $e) {
-                // Customer doesn't exist, we'll continue with a guest order
-                $this->loggingHelper->addEventLog(
-                    $logEntry,
-                    EventType::CUSTOMER_GUEST,
-                    'No existing customer found, proceeding with guest checkout'
-                );
-                $customerId = null;
-            } catch (\Exception $e) {
-                $this->loggingHelper->addEventLog(
-                    $logEntry,
-                    EventType::CUSTOMER_ERROR,
-                    'Error finding customer: ' . $e->getMessage(),
-                    ['email' => $customerEmail]
-                );
-                $this->loggingHelper->logError('Error finding customer: ' . $e->getMessage());
-                $customerId = null;
-            }
-        } else {
-            $this->loggingHelper->addEventLog(
-                $logEntry,
-                EventType::CUSTOMER_GUEST,
-                'Using guest checkout (customer linking disabled)'
-            );
-        }
-
-        return $customerId;
     }
 
     /**

@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- Plugin for OrderRepositoryInterface to intercept REST API calls to V1/orders/create -->
+    <type name="Magento\Sales\Api\OrderRepositoryInterface">
+        <plugin name="shopthru_connector_order_create_plugin"
+                type="Shopthru\Connector\Plugin\Rest\OrderRepositoryPlugin"
+                sortOrder="10" />
+    </type>
+</config>

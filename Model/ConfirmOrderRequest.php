@@ -3,9 +3,9 @@
 namespace Shopthru\Connector\Model;
 
 use Magento\Framework\DataObject;
-use Shopthru\Connector\Api\Data\ConfirmOrderInterface;
+use Shopthru\Connector\Api\Data\ConfirmOrderRequestInterface;
 
-class ConfirmOrder extends DataObject implements ConfirmOrderInterface
+class ConfirmOrderRequest extends DataObject implements ConfirmOrderRequestInterface
 {
     /**
      * @inheritDoc
@@ -77,5 +77,21 @@ class ConfirmOrder extends DataObject implements ConfirmOrderInterface
     public function setOrderNote($orderNote)
     {
         return $this->setData(self::ORDER_NOTE, $orderNote);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getTransactionId()
+    {
+        return $this->getData(self::TRANSACTION_ID);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setTransactionId($transactionId)
+    {
+        return $this->setData(self::TRANSACTION_ID, $transactionId);
     }
 }

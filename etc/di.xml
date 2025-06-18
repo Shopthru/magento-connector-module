@@ -3,6 +3,9 @@
     <preference for="Shopthru\Connector\Api\ImportOrderManagementInterface" type="Shopthru\Connector\Model\ImportOrderManagement" />
     <preference for="Shopthru\Connector\Api\Data\ImportLogInterface" type="Shopthru\Connector\Model\ImportLog" />
     <preference for="Shopthru\Connector\Api\Data\OrderImportInterface" type="Shopthru\Connector\Model\OrderImport" />
+    <preference for="Shopthru\Connector\Api\Data\ConfirmOrderRequestInterface" type="Shopthru\Connector\Model\ConfirmOrderRequest" />
+    <preference for="Shopthru\Connector\Api\Data\CancelOrderRequestInterface" type="Shopthru\Connector\Model\CancelOrderRequest" />
+    <preference for="Shopthru\Connector\Api\Data\OrderImportResponseInterface" type="Shopthru\Connector\Model\OrderImportResponse" />
     <preference for="Shopthru\Connector\Api\ImportLogRepositoryInterface" type="Shopthru\Connector\Model\ImportLogRepository" />
 
     <type name="Shopthru\Connector\Logger\Handler">

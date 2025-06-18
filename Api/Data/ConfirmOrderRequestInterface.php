@@ -4,9 +4,12 @@ namespace Shopthru\Connector\Api\Data;
 
 use Magento\Framework\DataObject;
 
-interface ConfirmOrderInterface
+interface ConfirmOrderRequestInterface
 {
     public const ORDER_ID = 'order_id';
+
+    public const TRANSACTION_ID = 'transaction_id';
+
     public const PAYMENT_DATA = 'payment_data';
     public const ORDER_DATA = 'order_data';
 
@@ -30,7 +33,7 @@ interface ConfirmOrderInterface
     /**
      * Get Payment Data
      *
-     * @return DataObject
+     * @return mixed
      */
     public function getPaymentData($key=null, $default=null);
 
@@ -71,6 +74,19 @@ interface ConfirmOrderInterface
      * @return $this
      */
     public function setOrderNote($orderNote);
+
+    /**
+     * @return mixed
+     */
+    public function getTransactionId();
+
+    /**
+     * Set Transaction ID
+     *
+     * @param string $transactionId
+     * @return $this
+     */
+    public function setTransactionId($transactionId);
 
 }
 

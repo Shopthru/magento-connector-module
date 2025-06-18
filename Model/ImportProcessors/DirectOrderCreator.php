@@ -21,7 +21,7 @@ use Magento\Sales\Model\Order\Item;
 use Magento\Sales\Api\Data\OrderItemInterfaceFactory;
 use Magento\Framework\DB\TransactionFactory;
 
-use Shopthru\Connector\Api\Data\ConfirmOrderInterface;
+use Shopthru\Connector\Api\Data\ConfirmOrderRequestInterface;
 use Shopthru\Connector\Api\Data\ImportLogInterface;
 use Shopthru\Connector\Api\Data\OrderImportInterface;
 use Shopthru\Connector\Helper\Logging as LoggingHelper;
@@ -175,11 +175,11 @@ class DirectOrderCreator
 
         $order->setGrandTotal($grandTotal);
         $order->setBaseGrandTotal($grandTotal);
-        $order->setTotalPaid(0);
-        $order->setBaseTotalPaid(0);
+        $order->setTotalPaid(0); // Set to 0 until order is confirmed
+        $order->setBaseTotalPaid(0); // Set to 0 until order is confirmed
     }
 
-    public function confirmOrder($shopthruOrderId, ConfirmOrderInterface $confirmOrderData, ImportLogInterface $importLog = null)
+    public function confirmOrder($shopthruOrderId, ConfirmOrderRequestInterface $confirmOrderData, ImportLogInterface $importLog = null)
     {
         if (!$importLog) {
             $importLog = $this->loggingHelper->getLogByShopthruOrderId($shopthruOrderId);
@@ -200,7 +200,7 @@ class DirectOrderCreator
         }
 
         $payment = $order->getPayment();
-        $transactionId = $confirmOrderData->getPaymentData()['transaction_id'] ?? '';
+        $transactionId = $confirmOrderData->getTransactionId() ?? $confirmOrderData->getPaymentData()['transaction_id'] ?? '';
         $payment->setTransactionId($transactionId);
         $payment->setLastTransId($transactionId);
         $payment->setTransactionAdditionalInfo('transaction_id', $transactionId);
@@ -634,7 +634,6 @@ class DirectOrderCreator
                     'payment_method' => $order->getPayment()->getMethod()
                 ]
             );
-            $this->loggingHelper->logError('Error creating invoice: ' . $e->getMessage());
         }
 
         return null;
@@ -664,7 +663,6 @@ class DirectOrderCreator
                 'Error updating stock: ' . $e->getMessage(),
                 []
             );
-            $this->loggingHelper->logError('Error updating stock: ' . $e->getMessage());
         }
 
         $this->loggingHelper->addEventLog(
@@ -733,7 +731,6 @@ class DirectOrderCreator
                     'error' => $e->getMessage()
                 ]
             );
-            $this->loggingHelper->logError('Error sending order confirmation email: ' . $e->getMessage());
             return false;
         }
     }

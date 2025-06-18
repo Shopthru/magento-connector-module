@@ -24,6 +24,7 @@ class EventType
 
     public const ORDER_CANCELLATION_STARTED = 'order:cancellation:started';
     public const ORDER_CANCELLATION_COMPLETED = 'order:cancellation:completed';
+    public const ORDER_CANCELLATION_ERROR = 'order:cancellation:error';
     public const ORDER_DELETED = 'order:deleted';
 
     // Stock-related events
