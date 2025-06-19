@@ -63,4 +63,13 @@
             </argument>
         </arguments>
     </type>
+
+    <type name="Shopthru\Connector\Console\Command\TestOrderCreate">
+        <arguments>
+            <argument name="importOrderManagement"
+                      xsi:type="object">Shopthru\Connector\Api\ImportOrderManagementInterface\Proxy</argument>
+            <argument name="config"
+                      xsi:type="object">Shopthru\Connector\Model\Config\Proxy</argument>
+        </arguments>
+    </type>
 </config>
