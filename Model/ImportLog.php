@@ -290,7 +290,7 @@ class ImportLog extends AbstractModel implements ImportLogInterface
 
         if ($this->getMagentoOrderId()) {
             try {
-                $this->orderRepository->get($this->getMagentoOrderId());
+                $magentoOrder = $this->orderRepository->get($this->getMagentoOrderId());
             } catch (NoSuchEntityException $exception) {
                 return null;
             }

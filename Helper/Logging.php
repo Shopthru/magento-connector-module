@@ -107,13 +107,11 @@ class Logging extends AbstractHelper
     }
 
     /**
-     * Add an event to the import log
-     *
-     * @param int $importId
+     * @param int|ImportLogInterface $importLog
      * @param string $eventName
      * @param string|null $description
      * @param array|null $additionalData
-     * @return \Shopthru\Connector\Api\Data\ImportLogInterface|null
+     * @return ImportLogInterface|null
      */
     public function addEventLog(
         int|ImportLogInterface $importLog,
@@ -165,14 +163,12 @@ class Logging extends AbstractHelper
     }
 
     /**
-     * Update import log entry
-     *
-     * @param int $importId
+     * @param int|ImportLogInterface $importLog
      * @param string|null $status
      * @param array|null $additionalData
      * @param string|null $failedReason
      * @param string|null $magentoOrderId
-     * @return \Shopthru\Connector\Api\Data\ImportLogInterface|null
+     * @return ImportLogInterface|null
      */
     public function updateImportLog(
         int|ImportLogInterface $importLog,
