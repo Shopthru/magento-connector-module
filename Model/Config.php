@@ -15,16 +15,16 @@ class Config
     /**
      * Config paths
      */
-    private const string XML_PATH_TRIGGER_EMAIL = 'shopthru/general/trigger_email';
-    private const string XML_PATH_DECREMENT_STOCK = 'shopthru/general/decrement_stock';
-    private const string XML_PATH_VALIDATE_AVAILABLE_STOCK = 'shopthru/general/validate_available_stock';
-    private const string XML_PATH_LINK_CUSTOMER = 'shopthru/general/link_customer';
-    private const string XML_PATH_AUTO_INVOICE = 'shopthru/general/auto_invoice';
-    private const string XML_PATH_ORDER_STATUS = 'shopthru/general/order_status';
-    private const string XML_PATH_PENDING_ORDER_STATUS = 'shopthru/general/pending_order_status';
-    private const string XML_PATH_CANCELLED_ORDER_ACTION = 'shopthru/general/cancelled_order_action';
-    private const string XML_PATH_CANCELLED_ORDER_STATUS = 'shopthru/general/cancelled_order_status';
-    private const string XML_PATH_ADMIN_API_INTERCEPT_ENABLED = 'shopthru/general/admin_api_intercept_enabled';
+    private const XML_PATH_TRIGGER_EMAIL = 'shopthru/general/trigger_email';
+    private const XML_PATH_DECREMENT_STOCK = 'shopthru/general/decrement_stock';
+    private const XML_PATH_VALIDATE_AVAILABLE_STOCK = 'shopthru/general/validate_available_stock';
+    private const XML_PATH_LINK_CUSTOMER = 'shopthru/general/link_customer';
+    private const XML_PATH_AUTO_INVOICE = 'shopthru/general/auto_invoice';
+    private const XML_PATH_ORDER_STATUS = 'shopthru/general/order_status';
+    private const XML_PATH_PENDING_ORDER_STATUS = 'shopthru/general/pending_order_status';
+    private const XML_PATH_CANCELLED_ORDER_ACTION = 'shopthru/general/cancelled_order_action';
+    private const XML_PATH_CANCELLED_ORDER_STATUS = 'shopthru/general/cancelled_order_status';
+    private const XML_PATH_ADMIN_API_INTERCEPT_ENABLED = 'shopthru/general/admin_api_intercept_enabled';
 
     private const XML_PATH_TEST_ORDER_SKU = 'shopthru/general/test_order_sku';
 
