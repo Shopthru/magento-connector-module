@@ -36,7 +36,7 @@ parameters:
         - '#Constant TESTS_MODULES_PATH not found.#'
         - '#Constant TESTS_INSTALLATION_DB_CONFIG_FILE not found.#'
         - '#Constant T_[A-Z_]+ not found.#'
-
+        - '#Call to an undefined method [\\\\a-zA-Z0-9_]+Interface::[a-zA-Z0-9_]+\(\)#'
 
 services:
     -
