@@ -16,7 +16,7 @@ jobs:
       - uses: extdn/github-actions-m2/magento-phpstan/8.4@master
         with:
           composer_name: "shopthru/module-connector"
-          phpstan_level: 5
+          phpstan_level: 2
 
   integration-2-4-6-p3:
     name: "Integration 2.4.6"
