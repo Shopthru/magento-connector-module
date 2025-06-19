@@ -2,11 +2,14 @@
 namespace Shopthru\Connector\Model;
 
 use Magento\Framework\Data\Collection\AbstractDb;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Model\AbstractModel;
 use Magento\Framework\Model\Context;
 use Magento\Framework\Model\ResourceModel\AbstractResource;
 use Magento\Framework\Registry;
 use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Sales\Api\Data\OrderInterface;
+use Magento\Sales\Api\OrderRepositoryInterface;
 use Shopthru\Connector\Api\Data\ImportLogInterface;
 
 class ImportLog extends AbstractModel implements ImportLogInterface
@@ -23,6 +26,7 @@ class ImportLog extends AbstractModel implements ImportLogInterface
         Context $context,
         Registry $registry,
         private readonly Json $serializer,
+        private readonly OrderRepositoryInterface $orderRepository,
         AbstractResource $resource = null,
         AbstractDb $resourceCollection = null,
         array $data = []
@@ -269,5 +273,38 @@ class ImportLog extends AbstractModel implements ImportLogInterface
     public function setMagentoOrderId(?string $magentoOrderId): self
     {
         return $this->setData(self::MAGENTO_ORDER_ID, $magentoOrderId);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getMagentoOrder(bool $skipReturn = true): ?OrderInterface
+    {
+        if ($skipReturn) {
+            return null;
+        }
+        $magentoOrder = $this->getData(self::MAGENTO_ORDER);
+        if ($magentoOrder && $magentoOrder instanceof OrderInterface) {
+            return $magentoOrder;
+        }
+
+        if ($this->getMagentoOrderId()) {
+            try {
+                $magentoOrder = $this->orderRepository->get($this->getMagentoOrderId());
+            } catch (NoSuchEntityException $exception) {
+                return null;
+            }
+            if ($magentoOrder instanceof OrderInterface && $magentoOrder->getId()) {
+                $this->setData(self::MAGENTO_ORDER, $magentoOrder);
+                return $magentoOrder;
+            }
+        }
+
+        return null;
+    }
+
+    public function setMagentoOrder(OrderInterface $magentoOrder): self
+    {
+        return $this->setData(self::MAGENTO_ORDER, $magentoOrder);
     }
 }

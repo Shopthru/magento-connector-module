@@ -18,6 +18,15 @@ class EventType
     public const IMPORT_COMPLETED = 'import:completed';
     public const IMPORT_ERROR = 'import:error';
 
+    public const ORDER_COMPLETION_STARTED = 'order:completion:started';
+    public const ORDER_COMPLETION_COMPLETED = 'order:completion:completed';
+    public const ORDER_COMPLETION_ERROR = 'order:completion:error';
+
+    public const ORDER_CANCELLATION_STARTED = 'order:cancellation:started';
+    public const ORDER_CANCELLATION_COMPLETED = 'order:cancellation:completed';
+    public const ORDER_CANCELLATION_ERROR = 'order:cancellation:error';
+    public const ORDER_DELETED = 'order:deleted';
+
     // Stock-related events
     public const STOCK_VALIDATION_SKIPPED = 'stock:validation:skipped';
     public const STOCK_VALIDATION_STARTED = 'stock:validation:started';

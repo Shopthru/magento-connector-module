@@ -22,6 +22,14 @@ class Status implements OptionSourceInterface
                 'label' => __('Pending')
             ],
             [
+                'value' => ImportLogInterface::STATUS_PENDING_PAYMENT,
+                'label' => __('Pending Payment')
+            ],
+            [
+                'value' => ImportLogInterface::STATUS_CANCELLED,
+                'label' => __('Cancelled')
+            ],
+            [
                 'value' => ImportLogInterface::STATUS_SUCCESS,
                 'label' => __('Success')
             ],

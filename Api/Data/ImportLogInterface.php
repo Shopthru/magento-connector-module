@@ -1,6 +1,8 @@
 <?php
 namespace Shopthru\Connector\Api\Data;
 
+use Magento\Sales\Api\Data\OrderInterface;
+
 interface ImportLogInterface
 {
     /**
@@ -19,11 +21,14 @@ interface ImportLogInterface
     public const ADDITIONAL_DATA = 'additional_data';
     public const FAILED_REASON = 'failed_reason';
     public const MAGENTO_ORDER_ID = 'magento_order_id';
+    public const MAGENTO_ORDER = 'magento_order';
 
     /**
      * Status Constants
      */
     public const STATUS_PENDING = 'pending';
+    public const STATUS_PENDING_PAYMENT = 'pending_payment';
+    public const STATUS_CANCELLED = 'cancelled';
     public const STATUS_SUCCESS = 'success';
     public const STATUS_FAILED = 'failed';
 
@@ -165,7 +170,7 @@ interface ImportLogInterface
     /**
      * Get Shopthru Data
      *
-     * @return array|null
+     * @return mixed|null
      */
     public function getShopthruData(): ?array;
 
@@ -221,4 +226,18 @@ interface ImportLogInterface
      * @return $this
      */
     public function setMagentoOrderId(?string $magentoOrderId): self;
+
+    /**
+     * Set Magento Order
+     *
+     * @param OrderInterface $order
+     * @return $this
+     */
+    public function setMagentoOrder(OrderInterface $order): self;
+
+    /**
+     * @param $skipReturn
+     * @return \Magento\Sales\Api\Data\OrderInterface|null
+     */
+    public function getMagentoOrder(bool $skipReturn=true): ?OrderInterface;
 }

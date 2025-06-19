@@ -46,6 +46,16 @@ class Logging extends AbstractHelper
         return $this->importLogRepository;
     }
 
+    public function getLogByShopthruOrderId($shopthruOrderId): ImportLogInterface
+    {
+        return $this->importLogRepository->getByShopthruOrderId($shopthruOrderId);
+    }
+
+    public function getLogByMagentoOrderId($magentoOrderId): ImportLogInterface
+    {
+        return $this->importLogRepository->getByMagentoOrderId($magentoOrderId);
+    }
+
     /**
      * Create import log entry
      *
@@ -97,22 +107,25 @@ class Logging extends AbstractHelper
     }
 
     /**
-     * Add an event to the import log
-     *
-     * @param int $importId
+     * @param int|ImportLogInterface $importLog
      * @param string $eventName
      * @param string|null $description
      * @param array|null $additionalData
-     * @return \Shopthru\Connector\Api\Data\ImportLogInterface|null
+     * @return ImportLogInterface|null
      */
     public function addEventLog(
-        int $importId,
+        int|ImportLogInterface $importLog,
         string $eventName,
         ?string $description = null,
         ?array $additionalData = null
     ): ?ImportLogInterface {
         try {
-            $importLog = $this->importLogRepository->getById($importId);
+            if ($importLog instanceof ImportLogInterface) {
+                $importId = $importLog->getImportId();
+            } else {
+                $importId = $importLog;
+                $importLog = $this->importLogRepository->getById($importId);
+            }
 
             // Get existing log data or initialize empty array
             $logData = $importLog->getLogData();
@@ -150,24 +163,27 @@ class Logging extends AbstractHelper
     }
 
     /**
-     * Update import log entry
-     *
-     * @param int $importId
+     * @param int|ImportLogInterface $importLog
      * @param string|null $status
      * @param array|null $additionalData
      * @param string|null $failedReason
      * @param string|null $magentoOrderId
-     * @return \Shopthru\Connector\Api\Data\ImportLogInterface|null
+     * @return ImportLogInterface|null
      */
     public function updateImportLog(
-        int $importId,
+        int|ImportLogInterface $importLog,
         ?string $status = null,
         ?array $additionalData = null,
         ?string $failedReason = null,
         ?string $magentoOrderId = null
     ): ?ImportLogInterface {
         try {
-            $importLog = $this->importLogRepository->getById($importId);
+            if ($importLog instanceof ImportLogInterface) {
+                $importId = $importLog->getImportId();
+            } else {
+                $importId = $importLog;
+                $importLog = $this->importLogRepository->getById($importId);
+            }
 
             if ($status !== null) {
                 $importLog->setStatus($status);

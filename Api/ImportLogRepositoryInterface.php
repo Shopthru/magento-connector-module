@@ -22,7 +22,25 @@ interface ImportLogRepositoryInterface
      * @return \Shopthru\Connector\Api\Data\ImportLogInterface
      * @throws \Magento\Framework\Exception\LocalizedException
      */
-    public function getById($importId);
+    public function getById($importId): ImportLogInterface;
+
+    /**
+     * Retrieve import log by its Shopthru Order ID
+     *
+     * @param mixed $shopthruOrderId
+     * @return \Shopthru\Connector\Api\Data\ImportLogInterface
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
+    public function getByShopthruOrderId($shopthruOrderId): ImportLogInterface;
+
+    /**
+     * Retrieve import log by its Magento Order ID
+     *
+     * @param mixed $magentoOrderId
+     * @return \Shopthru\Connector\Api\Data\ImportLogInterface
+     * @throws \Magento\Framework\Exception\LocalizedException
+     */
+    public function getByMagentoOrderId($magentoOrderId): ImportLogInterface;
 
     /**
      * Retrieve import logs matching the specified criteria
@@ -41,6 +59,14 @@ interface ImportLogRepositoryInterface
      * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function delete(ImportLogInterface $importLog);
+
+    /**
+     * Delete multiple import logs by ID
+     *
+     * @param array $importIds
+     * @return int|null
+     */
+    public function deleteMultiple(array $importIds): ?int;
 
     /**
      * Delete import log by ID

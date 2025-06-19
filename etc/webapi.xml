@@ -2,8 +2,32 @@
 <!-- etc/webapi.xml -->
 <routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
+    <route url="/V1/shopthru/orders/import-multi" method="POST">
+        <service class="Shopthru\Connector\Api\ImportOrderManagementInterface" method="importMultipleOrders"/>
+        <resources>
+            <resource ref="Shopthru_Connector::import" />
+        </resources>
+    </route>
     <route url="/V1/shopthru/orders/import" method="POST">
-        <service class="Shopthru\Connector\Api\ImportOrderManagementInterface" method="importOrders"/>
+        <service class="Shopthru\Connector\Api\ImportOrderManagementInterface" method="importOrder"/>
+        <resources>
+            <resource ref="Shopthru_Connector::import" />
+        </resources>
+    </route>
+    <route url="/V1/shopthru/orders/:shopthruOrderId/confirm" method="POST">
+        <service class="Shopthru\Connector\Api\ImportOrderManagementInterface" method="completeOrder"/>
+        <resources>
+            <resource ref="Shopthru_Connector::import" />
+        </resources>
+    </route>
+    <route url="/V1/shopthru/orders/:shopthruOrderId/cancel" method="POST">
+        <service class="Shopthru\Connector\Api\ImportOrderManagementInterface" method="cancelOrder"/>
+        <resources>
+            <resource ref="Shopthru_Connector::import" />
+        </resources>
+    </route>
+    <route url="/V1/shopthru/orders/logs" method="GET">
+        <service class="Shopthru\Connector\Api\ImportLogRepositoryInterface" method="getList"/>
         <resources>
             <resource ref="Shopthru_Connector::import" />
         </resources>

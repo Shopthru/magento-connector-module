@@ -91,6 +91,8 @@ class Shopthru extends AbstractMethod
      */
     protected $_canReviewPayment = false;
 
+    protected $_infoBlockType = \Shopthru\Connector\Block\Payment\Info\ShopthruPaymentInfo::class;
+
     /**
      * Constructor
      *
