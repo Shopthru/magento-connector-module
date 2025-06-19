@@ -280,7 +280,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
         );
     }
 
-    private function buildImportResponse(string $action, bool $success, ImportLogInterface $logEntry, OrderInterface $order = null): OrderImportResponseInterface
+    private function buildImportResponse(string $action, bool $success, ImportLogInterface $logEntry, ?OrderInterface $order = null): OrderImportResponseInterface
     {
         if (!$order && $logEntry->getMagentoOrder(false)) {
             $order = $logEntry->getMagentoOrder(false);

@@ -159,7 +159,7 @@ class Shopthru extends AbstractMethod
      * @param \Magento\Quote\Api\Data\CartInterface|null $quote
      * @return bool
      */
-    public function isAvailable(\Magento\Quote\Api\Data\CartInterface $quote = null)
+    public function isAvailable(?\Magento\Quote\Api\Data\CartInterface $quote = null)
     {
         // Only available for admin
         return $this->_canUseInternal && parent::isAvailable($quote);
