@@ -20,7 +20,7 @@ parameters:
             - %rootDir%/../../../dev/tests/setup-integration/framework/autoload.php
             - %rootDir%/../../../dev/tests/static/framework/Magento/PhpStan/autoload.php
     ignoreErrors:
-        - message: '#Access to an undefined property .*::\$coreRegistry#'
+        - message: '#Access to an undefined property .*\\ImportLog::\\$(coreRegistry|jsonSerializer)#'
         # Ignore PHPStan\Rules\Classes\UnusedConstructorParametersRule
         - '#Constructor of class [a-zA-Z0-9\\_]+ has an unused parameter#'
         # Ignore setCustomErrorHandler function not found in bootstrap files
