@@ -132,7 +132,7 @@ class Shopthru extends AbstractMethod
     /**
      * Assign data to info model instance
      *
-     * @param \Magento\Framework\DataObject|mixed $data
+     * @param \Magento\Framework\DataObject $data
      * @return $this
      */
     public function assignData(\Magento\Framework\DataObject $data)

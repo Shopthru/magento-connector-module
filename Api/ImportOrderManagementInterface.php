@@ -20,7 +20,7 @@ interface ImportOrderManagementInterface
     /**
      * Import a single order from Shopthru
      *
-     * @param \Shopthru\Connector\Api\Data\OrderImportInterface $order
+     * @param \Shopthru\Connector\Api\Data\OrderImportInterface $orderData
      * @return \Shopthru\Connector\Api\Data\OrderImportResponseInterface
      */
     public function importOrder(OrderImportInterface $orderData): OrderImportResponseInterface;

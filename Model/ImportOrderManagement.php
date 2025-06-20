@@ -32,10 +32,12 @@ class ImportOrderManagement implements ImportOrderManagementInterface
      * @param CustomerRepositoryInterface $customerRepository
      * @param Logging $loggingHelper
      * @param Config $moduleConfig
-     * @param OrderSender $orderSender
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param StockRegistryInterface $stockRegistry
      * @param DirectOrderCreator $directOrderCreator
+     * @param ImportOrderContext $importOrderContext
+     * @param OrderImportResponseInterfaceFactory $orderImportResponseFactory
+     * @param RestRequest $restRequest
      */
     public function __construct(
         private readonly ProductRepositoryInterface $productRepository,
