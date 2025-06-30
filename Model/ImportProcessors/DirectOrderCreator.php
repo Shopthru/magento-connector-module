@@ -284,8 +284,8 @@ class DirectOrderCreator
         $this->setOrderAddresses($order, $orderData, $logEntry);
         $this->addOrderItems($order, $orderData, $logEntry);
         $this->setOrderPayment($order, $orderData, $logEntry);
-        $this->setShippingInformation($order, $orderData, $logEntry);
-        $this->setOrderTotals($order, $orderData, $logEntry);
+        $this->setShippingInformation($order, $orderData);
+        $this->setOrderTotals($order, $orderData);
 
         // Set external order ID
         $order->setData('ext_order_id', $orderData->getOrderId());
@@ -654,6 +654,7 @@ class DirectOrderCreator
             ['order_id' => $order->getIncrementId()]
         );
 
+        $stockUpdates = [];
         try {
             $stockUpdates = $this->orderProcessesHelper->decrementStock($order);
         } catch (\Exception $e) {
