@@ -66,6 +66,7 @@ class View extends Action implements HttpGetActionInterface
             $importLog = $this->orderRepository->getById($id);
             $this->coreRegistry->register('current_import_log', $importLog);
 
+            /** @var \Magento\Backend\Model\View\Result\Page $resultPage */
             $resultPage = $this->resultPageFactory->create();
             $resultPage->setActiveMenu('Shopthru_Connector::shopthru');
             $resultPage->addBreadcrumb(__('Shopthru'), __('Shopthru'));

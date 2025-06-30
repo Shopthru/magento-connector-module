@@ -11,7 +11,7 @@ use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Email\Sender\OrderSender;
-use RectorPrefix202411\Illuminate\Contracts\Queue\EntityNotFoundException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Shopthru\Connector\Api\Data\ImportLogInterface;
 use Magento\Framework\DB\TransactionFactory;
 use Shopthru\Connector\Model\EventType;
@@ -78,7 +78,7 @@ class OrderProcesses extends AbstractHelper
             $order->setCustomerIsGuest(0);
             $order->setCustomerGroupId($customer->getGroupId());
 
-        } catch (EntityNotFoundException $e) {
+        } catch (NoSuchEntityException $e) {
             $order->setCustomerIsGuest(1);
             $order->setCustomerGroupId(Group::NOT_LOGGED_IN_ID);
         }

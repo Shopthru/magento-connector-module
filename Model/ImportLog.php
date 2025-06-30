@@ -27,8 +27,8 @@ class ImportLog extends AbstractModel implements ImportLogInterface
         Registry $registry,
         private readonly Json $serializer,
         private readonly OrderRepositoryInterface $orderRepository,
-        AbstractResource $resource = null,
-        AbstractDb $resourceCollection = null,
+        ?AbstractResource $resource = null,
+        ?AbstractDb $resourceCollection = null,
         array $data = []
     ) {
         parent::__construct($context, $registry, $resource, $resourceCollection, $data);

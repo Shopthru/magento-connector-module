@@ -170,7 +170,7 @@ interface ImportLogInterface
     /**
      * Get Shopthru Data
      *
-     * @return mixed|null
+     * @return array|null
      */
     public function getShopthruData(): ?array;
 

@@ -132,7 +132,7 @@ class Shopthru extends AbstractMethod
     /**
      * Assign data to info model instance
      *
-     * @param \Magento\Framework\DataObject|mixed $data
+     * @param \Magento\Framework\DataObject $data
      * @return $this
      */
     public function assignData(\Magento\Framework\DataObject $data)
@@ -159,7 +159,7 @@ class Shopthru extends AbstractMethod
      * @param \Magento\Quote\Api\Data\CartInterface|null $quote
      * @return bool
      */
-    public function isAvailable(\Magento\Quote\Api\Data\CartInterface $quote = null)
+    public function isAvailable(?\Magento\Quote\Api\Data\CartInterface $quote = null)
     {
         // Only available for admin
         return $this->_canUseInternal && parent::isAvailable($quote);
