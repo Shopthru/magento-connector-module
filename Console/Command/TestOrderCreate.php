@@ -27,7 +27,7 @@ class TestOrderCreate extends Command
         private readonly State $state,
         private readonly ProductRepositoryInterface $productRepository,
     ) {
-        return parent::__construct();
+        parent::__construct();
     }
 
     /**

@@ -179,7 +179,7 @@ class DirectOrderCreator
         $order->setBaseTotalPaid(0); // Set to 0 until order is confirmed
     }
 
-    public function confirmOrder($shopthruOrderId, ConfirmOrderRequestInterface $confirmOrderData, ImportLogInterface $importLog = null)
+    public function confirmOrder($shopthruOrderId, ConfirmOrderRequestInterface $confirmOrderData, ?ImportLogInterface $importLog = null)
     {
         if (!$importLog) {
             $importLog = $this->loggingHelper->getLogByShopthruOrderId($shopthruOrderId);
@@ -216,7 +216,7 @@ class DirectOrderCreator
         return $order;
     }
 
-    public function cancelOrder($shopthruOrderId, $orderData, ImportLogInterface $importLog = null)
+    public function cancelOrder($shopthruOrderId, $orderData, ?ImportLogInterface $importLog = null)
     {
         if (!$importLog) {
             $importLog = $this->loggingHelper->getLogByShopthruOrderId($shopthruOrderId);
@@ -284,8 +284,8 @@ class DirectOrderCreator
         $this->setOrderAddresses($order, $orderData, $logEntry);
         $this->addOrderItems($order, $orderData, $logEntry);
         $this->setOrderPayment($order, $orderData, $logEntry);
-        $this->setShippingInformation($order, $orderData, $logEntry);
-        $this->setOrderTotals($order, $orderData, $logEntry);
+        $this->setShippingInformation($order, $orderData);
+        $this->setOrderTotals($order, $orderData);
 
         // Set external order ID
         $order->setData('ext_order_id', $orderData->getOrderId());
@@ -654,6 +654,7 @@ class DirectOrderCreator
             ['order_id' => $order->getIncrementId()]
         );
 
+        $stockUpdates = [];
         try {
             $stockUpdates = $this->orderProcessesHelper->decrementStock($order);
         } catch (\Exception $e) {

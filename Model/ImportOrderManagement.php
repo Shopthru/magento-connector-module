@@ -32,10 +32,12 @@ class ImportOrderManagement implements ImportOrderManagementInterface
      * @param CustomerRepositoryInterface $customerRepository
      * @param Logging $loggingHelper
      * @param Config $moduleConfig
-     * @param OrderSender $orderSender
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param StockRegistryInterface $stockRegistry
      * @param DirectOrderCreator $directOrderCreator
+     * @param ImportOrderContext $importOrderContext
+     * @param OrderImportResponseInterfaceFactory $orderImportResponseFactory
+     * @param RestRequest $restRequest
      */
     public function __construct(
         private readonly ProductRepositoryInterface $productRepository,
@@ -280,7 +282,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
         );
     }
 
-    private function buildImportResponse(string $action, bool $success, ImportLogInterface $logEntry, OrderInterface $order = null): OrderImportResponseInterface
+    private function buildImportResponse(string $action, bool $success, ImportLogInterface $logEntry, ?OrderInterface $order = null): OrderImportResponseInterface
     {
         if (!$order && $logEntry->getMagentoOrder(false)) {
             $order = $logEntry->getMagentoOrder(false);

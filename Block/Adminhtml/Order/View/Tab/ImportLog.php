@@ -54,7 +54,7 @@ class ImportLog extends Template implements TabInterface
         }
 
         if (is_string($data)) {
-            $data = $this->jsonSerializer->unserialize($data);
+            $data = $this->jsonSerializer->unserialize($data); // @phpstan-ignore-line
         }
 
         return json_encode($data, JSON_PRETTY_PRINT);

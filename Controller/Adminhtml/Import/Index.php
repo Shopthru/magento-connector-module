@@ -40,6 +40,7 @@ class Index extends Action implements HttpGetActionInterface
      */
     public function execute()
     {
+        /** @var \Magento\Backend\Model\View\Result\Page $resultPage */
         $resultPage = $this->resultPageFactory->create();
         $resultPage->setActiveMenu('Shopthru_Connector::shopthru');
         $resultPage->addBreadcrumb(__('Shopthru'), __('Shopthru'));

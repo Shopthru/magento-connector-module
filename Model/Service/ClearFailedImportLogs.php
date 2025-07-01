@@ -51,7 +51,7 @@ class ClearFailedImportLogs
             } catch (CouldNotDeleteException $e) {
                 $this->logger->error(
                     sprintf(
-                        'Failed to delete failed import log ID %s: %s',
+                        'Failed to delete failed import log ID: %s',
                         $e->getMessage()
                     )
                 );
