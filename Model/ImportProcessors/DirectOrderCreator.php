@@ -29,7 +29,8 @@ use Shopthru\Connector\Helper\OrderProcesses;
 use Shopthru\Connector\Model\Config as ModuleConfig;
 use Shopthru\Connector\Model\EventType;
 use Shopthru\Connector\Model\ImportProcessors\DirectOrderCreator\DefaultData;
-use \Shopthru\Connector\Model\Payment\Method\Shopthru as ShopthruPayment;
+use Shopthru\Connector\Model\Payment\Method\Shopthru as ShopthruPayment;
+use Shopthru\Connector\Api\Data\CancelOrderRequestInterface;
 
 class DirectOrderCreator
 {
@@ -216,7 +217,7 @@ class DirectOrderCreator
         return $order;
     }
 
-    public function cancelOrder($shopthruOrderId, $orderData, ?ImportLogInterface $importLog = null)
+    public function cancelOrder($shopthruOrderId, CancelOrderRequestInterface $cancelOrderData, ?ImportLogInterface $importLog = null)
     {
         if (!$importLog) {
             $importLog = $this->loggingHelper->getLogByShopthruOrderId($shopthruOrderId);
@@ -226,36 +227,43 @@ class DirectOrderCreator
 
         switch ($this->moduleConfig->getCancelledOrderAction()) {
             case ModuleConfig\Source\CancelledOrderAction::UPDATE_STATUS:
-                return $this->cancelOrderStatusAction($order, $importLog);
+                return $this->cancelOrderStatusAction($order, $cancelOrderData, $importLog);
             case ModuleConfig\Source\CancelledOrderAction::DELETE:
-                return $this->cancelOrderDeleteAction($order, $importLog);
+                return $this->cancelOrderDeleteAction($order, $cancelOrderData, $importLog);
             default:
                 throw new \Exception('Invalid cancelled order action');
         }
     }
 
-    private function cancelOrderStatusAction(OrderInterface $order, ImportLogInterface $logEntry)
+    private function cancelOrderStatusAction(OrderInterface $order, CancelOrderRequestInterface $cancelOrderData, ImportLogInterface $logEntry)
     {
         $order->setState(Order::STATE_CANCELED);
         $order->setStatus($this->moduleConfig->getCancelledOrderStatus() ?: Order::STATE_CANCELED);
         // add note to order
-        $order->addStatusHistoryComment('Order cancelled by Shopthru');
+        $reasonCode = $cancelOrderData->getReasonCode() ?: '';
+        $reasonText = $cancelOrderData->getReasonText() ?: '';
+        $cancelledReasonMessage = 'Reason: [' . $reasonCode . '] - ' . $reasonText;
+        $order->addStatusHistoryComment('Order cancelled by Shopthru. ' . $cancelledReasonMessage);
         $this->orderRepository->save($order);
         $this->loggingHelper->addEventLog(
             $logEntry,
-            EventType::ORDER_STATUS,
-            'Order cancelled.'
+            EventType::ORDER_CANCELLED,
+            'Order cancelled. ' . $cancelledReasonMessage
         );
         return true;
     }
 
-    private function cancelOrderDeleteAction(OrderInterface $order, ImportLogInterface $logEntry)
+    private function cancelOrderDeleteAction(OrderInterface $order, CancelOrderRequestInterface $cancelOrderData, ImportLogInterface $logEntry)
     {
+        $reasonCode = $cancelOrderData->getReasonCode() ?: '';
+        $reasonText = $cancelOrderData->getReasonText() ?: '';
+        $cancelledReasonMessage = 'Reason: [' . $reasonCode . '] - ' . $reasonText;
         $this->orderRepository->delete($order);
+
         $this->loggingHelper->addEventLog(
             $logEntry,
             EventType::ORDER_DELETED,
-            'Order deleted.'
+            'Order deleted. ' . $cancelledReasonMessage
         );
 
         return true;
