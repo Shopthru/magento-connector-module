@@ -15,6 +15,7 @@ use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Model\Order\Email\Sender\OrderSender;
 use Magento\Framework\Webapi\Rest\Request as RestRequest;
 
+use Shopthru\Connector\Api\Data\CancelOrderRequestInterface;
 use Shopthru\Connector\Api\Data\ConfirmOrderRequestInterface;
 use Shopthru\Connector\Api\Data\ImportLogInterface;
 use Shopthru\Connector\Api\Data\OrderImportInterface;
@@ -53,7 +54,7 @@ class ImportOrderManagement implements ImportOrderManagementInterface
     ) {
     }
 
-    public function cancelOrder($shopthruOrderId, $orderData): OrderImportResponseInterface
+    public function cancelOrder($shopthruOrderId, CancelOrderRequestInterface $cancelOrderData): OrderImportResponseInterface
     {
         $this->importOrderContext->setIsShopthruImport(true);
         $logEntry = $this->loggingHelper->getLogByShopthruOrderId($shopthruOrderId);
@@ -77,13 +78,13 @@ class ImportOrderManagement implements ImportOrderManagementInterface
                     'magento_order_id' => $logEntry->getMagentoOrderId()
                 ]
             );
-            throw new InputException(__('Order cannot be confirmed as it is not in pending payment status', [
+            throw new InputException(__('Order cannot be cancelled as it is not in pending payment status', [
                 'status' => $logEntry->getStatus(),
                 'magento_order_id' => $logEntry->getMagentoOrderId()
             ]));
         }
 
-        $this->directOrderCreator->cancelOrder($shopthruOrderId, $orderData, $logEntry);
+        $this->directOrderCreator->cancelOrder($shopthruOrderId, $cancelOrderData, $logEntry);
         $this->loggingHelper->updateImportLog(
             $logEntry,
             ImportLogInterface::STATUS_CANCELLED,
