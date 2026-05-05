@@ -45,18 +45,17 @@ interface CancelOrderRequestInterface
     /**
      * Get Cancel Data
      *
-     * @return mixed|null
+     * @return array|null
      */
     public function getCancelData(): ?array;
 
     /**
      * Set Cancel Data
      *
-     * @param mixed $cancelData
+     * @param array $cancelData
      * @return $this
      */
     public function setCancelData(array $cancelData): self;
 
 }
-
 
