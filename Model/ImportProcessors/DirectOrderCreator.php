@@ -98,8 +98,8 @@ class DirectOrderCreator
     private function setCustomerInformation(
         OrderInterface $order,
         OrderImportInterface $orderData,
-        ImportLogInterface $logEntry): void
-    {
+        ImportLogInterface $logEntry
+    ): void {
         // Set customer information
         $customerData = $orderData->getCustomer();
 

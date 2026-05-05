@@ -15,7 +15,8 @@ class PaymentMethodAvailable implements ObserverInterface
      * @param ImportOrderContext $importOrderContext
      */
     public function __construct(private ImportOrderContext $importOrderContext)
-    {}
+    {
+    }
 
     /**
      * Make sure Shopthru payment method is only available for admin

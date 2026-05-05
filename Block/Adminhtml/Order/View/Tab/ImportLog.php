@@ -37,14 +37,13 @@ class ImportLog extends Template implements TabInterface
         if ($currentOrder) {
             try {
                 $log = $this->loggingHelper->getLogByMagentoOrderId($currentOrder->getId());
-            }catch (NoSuchEntityException $e){
+            } catch (NoSuchEntityException $e) {
                 return null;
             }
             $this->coreRegistry->register('current_import_log', $log);
             return $log;
         }
         return null;
-
     }
 
     public function formatJson($data)
@@ -96,7 +95,6 @@ class ImportLog extends Template implements TabInterface
         }
 
         return false;
-
     }
 
     /**

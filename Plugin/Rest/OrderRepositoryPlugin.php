@@ -1,6 +1,7 @@
 <?php
 
 namespace Shopthru\Connector\Plugin\Rest;
+
 use Magento\CatalogInventory\Api\StockRegistryInterface;
 use Magento\Customer\Model\Group;
 use Magento\Framework\Exception\LocalizedException;
@@ -19,16 +20,15 @@ use Shopthru\Connector\Model\EventType;
 
 class OrderRepositoryPlugin
 {
-    const SHOPTHRU_URL_PARAM = 'shopthru_order';
+    public const SHOPTHRU_URL_PARAM = 'shopthru_order';
 
-    const SHOPTHRU_FLAG_PARAM_NAME = 'st_flags';
+    public const SHOPTHRU_FLAG_PARAM_NAME = 'st_flags';
 
-    const SHOPTHRU_FLAG_PARAM_VALIDATE_STOCK = 'validate_stock';
-    const SHOPTHRU_FLAG_PARAM_DECREMENT_STOCK = 'decrement_stock';
-    const SHOPTHRU_FLAG_PARAM_TRIGGER_EMAIL = 'trigger_email';
-    const SHOPTHRU_FLAG_PARAM_AUTO_INVOICE = 'auto_invoice';
-    const SHOPTHRU_FLAG_PARAM_LINK_CUSTOMER = 'link_customer';
-
+    public const SHOPTHRU_FLAG_PARAM_VALIDATE_STOCK = 'validate_stock';
+    public const SHOPTHRU_FLAG_PARAM_DECREMENT_STOCK = 'decrement_stock';
+    public const SHOPTHRU_FLAG_PARAM_TRIGGER_EMAIL = 'trigger_email';
+    public const SHOPTHRU_FLAG_PARAM_AUTO_INVOICE = 'auto_invoice';
+    public const SHOPTHRU_FLAG_PARAM_LINK_CUSTOMER = 'link_customer';
 
     /**
      * Flag to prevent infinite recursion
@@ -49,7 +49,8 @@ class OrderRepositoryPlugin
         private readonly StockRegistryInterface $stockRegistry,
         private readonly ProductRepositoryInterface $productRepository,
         private readonly LoggingHelper $loggingHelper,
-    ) {}
+    ) {
+    }
 
     private function isProcessing(): bool
     {
@@ -61,7 +62,7 @@ class OrderRepositoryPlugin
         self::$isProcessing = $flag;
     }
 
-    private function getProcessingFlag(string $key, bool $default=false): bool
+    private function getProcessingFlag(string $key, bool $default = false): bool
     {
         return (bool) $this->processingFlags[$key] ?? false;
     }
@@ -350,9 +351,9 @@ class OrderRepositoryPlugin
         try {
             if ($this->shouldAutoInvoice()) {
                 $this->loggingHelper->addEventLog(
-                  $this->importLog,
-                  EventType::INVOICE_CREATING,
-                  'Creating invoice'
+                    $this->importLog,
+                    EventType::INVOICE_CREATING,
+                    'Creating invoice'
                 );
                 $this->orderProcesses->createInvoice($order);
                 $comments[] = "Invoice created and marked as paid";
@@ -384,7 +385,6 @@ class OrderRepositoryPlugin
                 'Error sending order confirmation email: ' . $e->getMessage()
             );
         }
-
 
         if ($comments) {
             try {
@@ -419,9 +419,11 @@ class OrderRepositoryPlugin
     /**
      * Get REST API request parameters
      *
+     * @param mixed|string|null $key
+     * @param mixed|string|null $default
      * @return mixed
      */
-    private function getRestParams($key=null, $default=null): mixed
+    private function getRestParams($key = null, $default = null): mixed
     {
         try {
             // Get the request body for REST API calls
@@ -447,8 +449,5 @@ class OrderRepositoryPlugin
             $this->logger->error('Shopthru Connector: Error getting REST body: ' . $e->getMessage());
             return [];
         }
-
     }
-
-
 }

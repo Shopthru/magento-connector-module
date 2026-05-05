@@ -17,8 +17,8 @@ class ShopthruPaymentInfo extends \Magento\Payment\Block\ConfigurableInfo
     public function __construct(
         Context $context,
         ConfigInterface $config,
-        array $data = [])
-    {
+        array $data = []
+    ) {
         $data['methodCode'] = Shopthru::CODE;
         parent::__construct($context, $config, $data);
     }
@@ -50,5 +50,4 @@ class ShopthruPaymentInfo extends \Magento\Payment\Block\ConfigurableInfo
         }
         return parent::getValueView($field, $value);
     }
-
 }

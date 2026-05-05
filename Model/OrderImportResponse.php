@@ -10,8 +10,9 @@ use Shopthru\Connector\Api\ImportLogRepositoryInterface;
 class OrderImportResponse extends DataObject implements OrderImportResponseInterface
 {
     public function __construct(
-        private readonly ImportLogRepositoryInterface $importLogRepository, array $data = [])
-    {
+        private readonly ImportLogRepositoryInterface $importLogRepository,
+        array $data = []
+    ) {
         parent::__construct($data);
     }
 
@@ -182,5 +183,4 @@ class OrderImportResponse extends DataObject implements OrderImportResponseInter
     {
         return $this->setData(self::IMPORT_LOG, $importLog);
     }
-
 }

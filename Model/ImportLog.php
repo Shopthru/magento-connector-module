@@ -18,9 +18,11 @@ class ImportLog extends AbstractModel implements ImportLogInterface
      * @param Context $context
      * @param Registry $registry
      * @param Json $serializer
+     * @param OrderRepositoryInterface $orderRepository
      * @param AbstractResource|null $resource
      * @param AbstractDb|null $resourceCollection
      * @param array $data
+     * @throws \Magento\Framework\Exception\LocalizedException
      */
     public function __construct(
         Context $context,

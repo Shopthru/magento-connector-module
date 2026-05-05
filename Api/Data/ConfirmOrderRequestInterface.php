@@ -33,9 +33,11 @@ interface ConfirmOrderRequestInterface
     /**
      * Get Payment Data
      *
+     * @param mixed|string|null $key
+     * @param mixed|string|null $default
      * @return mixed
      */
-    public function getPaymentData($key=null, $default=null);
+    public function getPaymentData($key = null, $default = null);
 
     /**
      * Set Payment Data
@@ -87,7 +89,4 @@ interface ConfirmOrderRequestInterface
      * @return $this
      */
     public function setTransactionId($transactionId);
-
 }
-
-

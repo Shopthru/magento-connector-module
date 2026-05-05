@@ -20,8 +20,9 @@ class TestOrderCreate extends Command
      * @param ImportOrderManagementInterface $importOrderManagement
      * @param Config $shopthruConfig
      * @param State $state
+     * @param ProductRepositoryInterface $productRepository
      */
-    protected function __construct(
+    public function __construct(
         private readonly ImportOrderManagementInterface $importOrderManagement,
         private readonly Config $shopthruConfig,
         private readonly State $state,
@@ -66,7 +67,6 @@ class TestOrderCreate extends Command
             $message = 'Magento Order Ref: ' . $magentoOrder->getIncrementId();
         }
         $output->writeln($message);
-
 
         $output->writeln('Test order created.');
         $output->writeln('Confirming order...');

@@ -26,7 +26,7 @@ class ConfirmOrderRequest extends DataObject implements ConfirmOrderRequestInter
     /**
      * @inheritDoc
      */
-    public function getPaymentData($key=null, $default=null)
+    public function getPaymentData($key = null, $default = null)
     {
         $paymentData = $this->getData(self::PAYMENT_DATA);
         if (!is_array($paymentData)) {

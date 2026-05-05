@@ -57,7 +57,6 @@ class ClearFailedImportLogs
                 );
             }
 
-
             return $deletedCount;
         } catch (\Exception $e) {
             $this->logger->error('Error clearing failed import logs: ' . $e->getMessage());
