@@ -236,8 +236,8 @@ interface ImportLogInterface
     public function setMagentoOrder(OrderInterface $order): self;
 
     /**
-     * @param $skipReturn
+     * @param bool $skipReturn
      * @return \Magento\Sales\Api\Data\OrderInterface|null
      */
-    public function getMagentoOrder(bool $skipReturn=true): ?OrderInterface;
+    public function getMagentoOrder(bool $skipReturn = true): ?OrderInterface;
 }

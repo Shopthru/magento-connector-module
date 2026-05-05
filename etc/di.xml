@@ -55,6 +55,12 @@
         </arguments>
     </type>
 
+    <type name="Shopthru\Connector\Block\Payment\Info\ShopthruPaymentInfo">
+        <arguments>
+            <argument name="config" xsi:type="object">Magento\Payment\Gateway\Config\Config</argument>
+        </arguments>
+    </type>
+
     <type name="Magento\Framework\Console\CommandListInterface">
         <arguments>
             <argument name="commands" xsi:type="array">
@@ -68,7 +74,7 @@
         <arguments>
             <argument name="importOrderManagement"
                       xsi:type="object">Shopthru\Connector\Api\ImportOrderManagementInterface\Proxy</argument>
-            <argument name="config"
+            <argument name="shopthruConfig"
                       xsi:type="object">Shopthru\Connector\Model\Config\Proxy</argument>
         </arguments>
     </type>

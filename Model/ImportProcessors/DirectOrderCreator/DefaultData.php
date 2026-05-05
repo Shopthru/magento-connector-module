@@ -7,8 +7,6 @@ use Magento\Framework\DataObject;
 class DefaultData extends DataObject
 {
     /**
-     * Default order data
-     *
      * @var array
      */
     private $defaultOrderData = [
@@ -33,8 +31,6 @@ class DefaultData extends DataObject
     ];
 
     /**
-     * Default item data
-     *
      * @var array
      */
     private $defaultItemData = [

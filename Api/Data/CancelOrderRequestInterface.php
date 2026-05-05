@@ -56,6 +56,4 @@ interface CancelOrderRequestInterface
      * @return $this
      */
     public function setCancelData(array $cancelData): self;
-
 }
-

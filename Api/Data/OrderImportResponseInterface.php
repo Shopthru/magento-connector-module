@@ -159,5 +159,4 @@ interface OrderImportResponseInterface
      * @return $this
      */
     public function setImportLog(ImportLogInterface $importLog): self;
-
 }
