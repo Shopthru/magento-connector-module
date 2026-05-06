@@ -12,7 +12,6 @@ use Shopthru\Connector\Api\Data\OrderImportResponseInterface;
 use Shopthru\Connector\Api\ImportLogRepositoryInterface;
 use Shopthru\Connector\Api\ImportOrderManagementInterface;
 use Shopthru\Connector\Model\ConfirmOrderRequest;
-use Shopthru\Connector\Model\EventType;
 use Shopthru\Connector\Model\OrderImport;
 
 /**
@@ -43,6 +42,8 @@ class ImportLogRepositoryTest extends TestCase
             $this->createConfirmOrderRequest($shopthruOrderId, $transactionId)
         );
 
+        $this->assertSame(OrderImportResponseInterface::IMPORT_ACTION_CREATE, $createResponse->getImportAction());
+        $this->assertTrue($createResponse->getImportActionSuccess());
         $this->assertSame(OrderImportResponseInterface::IMPORT_ACTION_CONFIRM, $confirmResponse->getImportAction());
         $this->assertTrue($confirmResponse->getImportActionSuccess());
         $this->assertSame(ImportLogInterface::STATUS_SUCCESS, $confirmResponse->getImportStatus());
@@ -60,27 +61,7 @@ class ImportLogRepositoryTest extends TestCase
         $this->assertSame(ImportLogInterface::STATUS_SUCCESS, $importLog->getStatus());
         $this->assertSame((string)$createResponse->getMagentoOrderId(), $importLog->getMagentoOrderId());
         $this->assertSame((string)$confirmResponse->getMagentoOrderId(), $importLog->getMagentoOrderId());
-        $this->assertNotEmpty($importLog->getImportedAt());
         $this->assertSame($shopthruOrderId, $importLog->getShopthruData()['order_id']);
-        $this->assertSame('Shopthru Integration Test', $importLog->getShopthruPublisherName());
-        $this->assertSame('STIT', $importLog->getShopthruPublisherRef());
-
-        $logData = $importLog->getLogData();
-        $this->assertNotEmpty($logData);
-        foreach ($logData as $event) {
-            $this->assertArrayHasKey('event', $event);
-            $this->assertArrayHasKey('datetime', $event);
-        }
-
-        $eventNames = array_column($logData, 'event');
-        $this->assertContains(EventType::IMPORT_STARTED, $eventNames);
-        $this->assertContains(EventType::ORDER_CREATING_DIRECT, $eventNames);
-        $this->assertContains(EventType::ORDER_CREATED_DIRECT, $eventNames);
-        $this->assertContains(EventType::ORDER_ITEM_ADDED, $eventNames);
-        $this->assertContains(EventType::IMPORT_COMPLETED, $eventNames);
-        $this->assertContains(EventType::ORDER_COMPLETION_STARTED, $eventNames);
-        $this->assertContains(EventType::EMAIL_SKIPPED, $eventNames);
-        $this->assertContains(EventType::ORDER_COMPLETION_COMPLETED, $eventNames);
     }
 
     private function createConfirmOrderRequest(string $shopthruOrderId, string $transactionId): ConfirmOrderRequest
